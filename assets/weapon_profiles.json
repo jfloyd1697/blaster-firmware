@@ -1,0 +1,192 @@
+[
+    {
+        "name": "atst-chinguns-online-audio-converter",
+        "file": "blaster/atst-chinguns-online-audio-converter.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "battle-droid-blaster",
+        "file": "blaster/battle-droid-blaster.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "blast-2",
+        "file": "blaster/blast-2.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "blast-3",
+        "file": "blaster/blast-3.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "blaster-ligero",
+        "file": "blaster/blaster-ligero.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "blasterpistol1",
+        "file": "blaster/blasterpistol1.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "boba-fetts-blaster",
+        "file": "blaster/boba-fetts-blaster.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "clone-blaster",
+        "file": "blaster/clone-blaster.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "clone-commando-blaster",
+        "file": "blaster/clone-commando-blaster.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "droideka-blaster",
+        "file": "blaster/droideka-blaster.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "e-11",
+        "file": "blaster/e-11.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "fleet-trooper-blaster",
+        "file": "blaster/fleet-trooper-blaster.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "jango-fett-blaster-1",
+        "file": "blaster/jango-fett-blaster-1.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "lego-die",
+        "file": "star_wars_sfx/lego-die.wav",
+        "category": "star_wars_sfx"
+    },
+    {
+        "name": "lego-star-wars-droid-trifighter-blaster1",
+        "file": "blaster/lego-star-wars-droid-trifighter-blaster1.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "lego-star-wars-droid-trifighter-blaster2",
+        "file": "blaster/lego-star-wars-droid-trifighter-blaster2.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "lego-star-wars-leia-blaster",
+        "file": "blaster/lego-star-wars-leia-blaster.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "lego-star-wars-tie-fighter-blaster2",
+        "file": "blaster/lego-star-wars-tie-fighter-blaster2.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "lego-star-wars-y-wing-blaster",
+        "file": "blaster/lego-star-wars-y-wing-blaster.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "naboo-royal-blaster",
+        "file": "blaster/naboo-royal-blaster.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "probe-droid-blaster",
+        "file": "blaster/probe-droid-blaster.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "sandtrooper-blaster",
+        "file": "blaster/sandtrooper-blaster.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "scout-blaster",
+        "file": "blaster/scout-blaster.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "stormtrooper-blaster-2_DofYccb",
+        "file": "blaster/stormtrooper-blaster-2_DofYccb.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "tie-blaster-cannon",
+        "file": "blaster/tie-blaster-cannon.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "tie-fighter-fire-1",
+        "file": "blaster/tie-fighter-fire-1.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "w-dl-44-blaster-pistol",
+        "file": "blaster/w-dl-44-blaster-pistol.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "w-e-11-blaster-rifle",
+        "file": "blaster/w-e-11-blaster-rifle.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "walker-blaster",
+        "file": "blaster/walker-blaster.wav",
+        "category": "blaster"
+    },
+    {
+        "name": "basic_fart",
+        "file": "fart/basic_fart.wav",
+        "category": "fart"
+    },
+    {
+        "name": "speeder_whoop",
+        "file": "star_wars_sfx/speeder_whoop.wav",
+        "category": "star_wars_sfx"
+    },
+    {
+        "name": "dry-fart",
+        "file": "fart/dry-fart.wav",
+        "category": "fart"
+    },
+    {
+        "name": "fart-with-extra-reverb",
+        "file": "fart/fart-with-extra-reverb.wav",
+        "category": "fart"
+    },
+    {
+        "name": "farth-vader",
+        "file": "fart/farth-vader.wav",
+        "category": "fart"
+    },
+    {
+        "name": "nanofartv2",
+        "file": "fart/nanofartv2.wav",
+        "category": "fart"
+    },
+    {
+        "name": "nuclear-fart-1",
+        "file": "fart/nuclear-fart-1.wav",
+        "category": "fart"
+    },
+    {
+        "name": "wet-fart-meme",
+        "file": "fart/wet-fart-meme.wav",
+        "category": "fart"
+    },
+    {
+        "name": "wet-fart_1",
+        "file": "fart/wet-fart_1.wav",
+        "category": "fart"
+    }
+]

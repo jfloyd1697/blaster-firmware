@@ -41,18 +41,16 @@ public:
         // Concrete implementations must define how to read raw button states
         virtual bool readRawButton(ButtonID button) = 0;
 
-        bool isButtonPressed(ButtonID button) {
-            bool current = readRawButton(button); // platform-specific input
+        bool isButtonPressed(const ButtonID button) {
+            const bool current = readRawButton(button); // platform-specific input
 
-            auto now = std::chrono::steady_clock::now();
-            auto &state = buttonStates[button];
+            const auto now = std::chrono::steady_clock::now();
 
             // Check if the button state changed
-            if (current != state.lastState) {
-                auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - state.lastChange).count();
-                if (dt >= debounceMs) {
-                    state.lastState = current;
-                    state.lastChange = now;
+            if (auto &[lastState, lastChange] = buttonStates[button]; current != lastState) {
+                if (const auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastChange).count(); dt >= debounceMs) {
+                    lastState = current;
+                    lastChange = now;
                     if (current) return true; // rising edge
                 }
             }

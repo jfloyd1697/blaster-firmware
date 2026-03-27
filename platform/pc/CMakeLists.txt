@@ -1,5 +1,7 @@
 # Define header-only interface library
-add_library(platform_pc INTERFACE)
+add_library(platform_pc INTERFACE
+        PCPlatform.h
+)
 
 # Include path for the PC platform headers
 target_include_directories(platform_pc

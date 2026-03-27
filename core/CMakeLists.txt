@@ -5,6 +5,10 @@ add_library(core
         Blaster.cpp
         WeaponJSONLoader.cpp
         IDebug.h
+        lights/DebugLights.h
+        lights/Animation.h
+        lights/LightEngine.h
+        lights/LightEnigine.cpp
 )
 
 # Include paths
@@ -13,3 +17,6 @@ target_include_directories(core
         ${CMAKE_CURRENT_SOURCE_DIR}           # core headers
         ${CMAKE_SOURCE_DIR}/external/nlohmann # nlohmann/json.hpp
 )
+
+
+

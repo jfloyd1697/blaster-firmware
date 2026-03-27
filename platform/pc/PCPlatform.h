@@ -13,13 +13,24 @@
 #include <ostream>
 #include <string>
 #include <windows.h>    // For WinMM audio
-#include "../../core/IAudioEngine.h"
-#include "../../core/IDebug.h"
-#include "../../core/IInput.h"
-#include "../../core/ITime.h"
-#include "../../core/Platform.h"
+#include "IAudioEngine.h"
+#include "IDebug.h"
+#include "IInput.h"
+#include "ITime.h"
+#include "Platform.h"
+
+// ------------------------- PC Debug -------------------------
+struct PCDebug : public IDebug {
+    void log(const std::string &msg) override {
+        std::cout << "[LOG] " << msg << std::endl;
+    }
+    void error(const std::string &msg) override {
+        std::cerr << "[ERROR] " << msg << std::endl;
+    }
+};
 
 // ------------------------- PC Input -------------------------
+
 class PCInput : public IInput {
 protected:
     bool readRawButton(ButtonID button) override {
@@ -40,7 +51,8 @@ protected:
 
 
 // ------------------------- PC Time -------------------------
-struct PCTime : ITime {
+
+struct PCTime : public ITime {
     uint64_t millis() const override {
         auto now = std::chrono::steady_clock::now();
         return std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -50,7 +62,8 @@ struct PCTime : ITime {
 };
 
 // ------------------------- PC Audio -------------------------
-struct PCAudioEngine : IAudioEngine {
+
+struct PCAudioEngine : public IAudioEngine {
     explicit PCAudioEngine(IDebug* debugService = nullptr)
         : m_debug(debugService) {}
     void playSound(const std::string &file) override {
@@ -65,24 +78,15 @@ struct PCAudioEngine : IAudioEngine {
         IDebug * m_debug;
 };
 
-// ------------------------- PC Debug -------------------------
-struct PCDebug : IDebug {
-    void log(const std::string &msg) override {
-        std::cout << "[LOG] " << msg << std::endl;
-    }
-    void error(const std::string &msg) override {
-        std::cerr << "[ERROR] " << msg << std::endl;
-    }
-};
 
 // ------------------------- PC Platform Factory -------------------------
 struct PCPlatformFactory {
     static PlatformServices create() {
         PlatformServices services;
         services.debug = std::make_unique<PCDebug>();
-        services.audio = std::make_unique<PCAudioEngine>(services.debug.get());
         services.input = std::make_unique<PCInput>();
         services.time = std::make_unique<PCTime>();
+        services.audio = std::make_unique<PCAudioEngine>(services.debug.get());
         services.assetRoot = "assets/"; // Default asset root
         return services;
     }

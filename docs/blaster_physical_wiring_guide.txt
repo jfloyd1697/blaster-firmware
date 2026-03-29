@@ -1,0 +1,151 @@
+Blaster Wiring Guide (Physical Layout + Wire Planning)
+
+This version is optimized for real-world assembly inside your blaster.
+
+------------------------------------------------------------------------
+
+🎯 Layout Strategy
+
+Place components to minimize wire length:
+
+-   NodeMCU: central
+-   MAX98357A: near speaker
+-   microSD: near side access (for card removal)
+
+------------------------------------------------------------------------
+
+🎨 Wire Color Convention (Recommended)
+
+  Signal Type   Color
+  ------------- --------
+  5V (VU)       Red
+  3.3V          Orange
+  GND           Black
+  SPI MOSI      Yellow
+  SPI MISO      Green
+  SPI SCK       Blue
+  SPI CS        Purple
+  I2S LRC       White
+  I2S BCLK      Gray
+  I2S DIN       Brown
+
+------------------------------------------------------------------------
+
+🎧 Audio Wiring (Keep VERY Short)
+
+  NodeMCU   →   MAX98357A   Wire Color   Length
+  --------- --- ----------- ------------ ------------
+  VU        →   VIN         Red          Short
+  GND       →   GND         Black        Short
+  D4        →   LRC         White        Very short
+  D8        →   BCLK        Gray         Very short
+  RX        →   DIN         Brown        Very short
+
+⚠️ Keep all I2S wires under ~2–3 inches if possible
+
+------------------------------------------------------------------------
+
+🔊 Speaker Wiring
+
+  MAX98357A   →   Speaker   Wire
+  ----------- --- --------- --------------
+  SPK+        →   +         Twisted pair
+  SPK-        →   -         Twisted pair
+
+✔ Twist wires together to reduce noise
+
+------------------------------------------------------------------------
+
+💾 microSD Wiring (Moderate Length OK)
+
+  NodeMCU   →   SD Module   Wire Color
+  --------- --- ----------- ------------
+  3V3       →   VCC         Orange
+  GND       →   GND         Black
+  D7        →   MOSI        Yellow
+  D6        →   MISO        Green
+  D5        →   SCK         Blue
+  D1        →   CS          Purple
+
+✔ Keep under ~6 inches if possible
+
+------------------------------------------------------------------------
+
+🎮 Button Wiring
+
+  Button    Pin   Wire     Notes
+  --------- ----- -------- ---------------------------
+  Trigger   D2    White    Primary input
+  Reload    D0    Gray     Optional
+  Mode      D3    Yellow   Avoid holding during boot
+
+Wiring: Pin → Button → GND
+
+------------------------------------------------------------------------
+
+⚡ Power Distribution
+
+Recommended Layout:
+
+-   Run a main ground line (black) across all components
+-   Split power:
+    -   5V → MAX98357A (short, thick wire if possible)
+    -   3.3V → SD module
+
+------------------------------------------------------------------------
+
+🧠 Physical Mounting Tips
+
+NodeMCU
+
+-   Mount centrally
+-   Leave USB accessible
+
+MAX98357A
+
+-   Place near speaker
+-   Keep audio wires short
+-   Add foam or padding to prevent vibration
+
+microSD Module
+
+-   Place near exterior for access
+-   Secure firmly (cards can loosen)
+
+------------------------------------------------------------------------
+
+🔧 Strain Relief
+
+-   Use hot glue or zip ties at connection points
+-   Avoid stress on:
+    -   RX (GPIO3)
+    -   D8 (GPIO15)
+
+------------------------------------------------------------------------
+
+🔊 Noise Reduction Tips
+
+-   Twist speaker wires
+-   Keep I2S wires away from power lines
+-   Avoid running audio wires parallel to SPI wires
+
+------------------------------------------------------------------------
+
+🧪 Final Assembly Checklist
+
+-   All grounds connected
+-   No long loose wires
+-   SD card accessible
+-   Speaker secure
+-   No wires pulling on pins
+
+------------------------------------------------------------------------
+
+🚀 Recommended Next Step
+
+After wiring:
+
+1.  Test /startup.wav
+2.  Verify clean audio
+3.  Add trigger button → /fire.wav
+4.  Mount everything permanently

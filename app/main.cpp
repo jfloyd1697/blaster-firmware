@@ -3,8 +3,9 @@
 #include <thread>
 #include <chrono>
 #include <vector>
-#include "../core/Blaster.h"
-#include "../core/weapons/WeaponJSONLoader.h"
+
+#include "core/Blaster.h"
+#include "core/weapons/WeaponJSONLoader.h"
 #include "../include/platform/pc/PCPlatform.h"
 
 

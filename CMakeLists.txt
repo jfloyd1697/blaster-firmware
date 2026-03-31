@@ -9,7 +9,7 @@ set(BLASTER_PLATFORM "PC" CACHE STRING "Target platform")
 set_property(CACHE BLASTER_PLATFORM PROPERTY STRINGS PC ESP)
 
 add_subdirectory(include)
-add_subdirectory(core)
+add_subdirectory(lib/core)
 add_subdirectory(src)
 
 add_executable(BlasterApp

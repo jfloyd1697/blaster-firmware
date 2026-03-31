@@ -55,6 +55,7 @@ struct ESPPlatformFactory {
         audio->begin(D1); // SD CS
         services.audio = std::move(audio);
 
+        services.lights = nullptr;
         services.assetRoot = "/";
 
         return services;

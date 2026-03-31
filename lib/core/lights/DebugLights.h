@@ -18,9 +18,9 @@ namespace Lights {
             : wrapped_(std::move(wrapped)), debug_(std::move(debug))
         {}
 
-        void step() override {;
+        void update() override {;
             if (debug_) debug_->log("Stepping DebugLights");
-            wrapped_->step();
+            wrapped_->update();
         }
 
         void addAnimation(std::shared_ptr<Animations::IAnimation> anim) override {

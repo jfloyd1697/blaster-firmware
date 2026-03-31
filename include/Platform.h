@@ -11,12 +11,14 @@
 #include "IInput.h"
 #include "ITime.h"
 #include "IDebug.h"
+#include "ILights.h"
 
 struct PlatformServices {
     std::unique_ptr<IAudioEngine> audio;
     std::unique_ptr<IInput> input;
     std::unique_ptr<ITime> time;
     std::unique_ptr<IDebug> debug;
+    std::unique_ptr<Lights::ILights> lights;
     std::string assetRoot;
 
     PlatformServices() = default;

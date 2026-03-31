@@ -19,50 +19,65 @@
 #endif
 
 namespace {
-        PlatformServices services;
-        std::unique_ptr<Blaster> blaster;
+    PlatformServices services;
+    std::unique_ptr<Blaster> blaster;
 
-        bool initializeApp() {
-                services.debug->log("App initialization starting");
+    bool initializeApp() {
+        services.debug->log("App initialization starting");
 
-                const std::string weaponJsonPath = services.assetRoot + "weapon_profiles.json";
-                auto banks = loadSoundBanks(weaponJsonPath);
+        const std::string weaponJsonPath = services.assetRoot + "weapon_profiles.json";
+        auto banks = loadSoundBanks(weaponJsonPath);
 
-                if (banks.empty()) {
-                        services.debug->error("No sound banks found!");
-                        return false;
-                }
-
-                services.debug->log("Loaded bank count: " + std::to_string(banks.size()));
-
-                blaster = std::make_unique<Blaster>(services, banks);
-
-                services.debug->log("App initialization complete");
-                return true;
+        if (banks.empty()) {
+            services.debug->error("No sound banks found!");
+            return false;
         }
 
-        bool tickApp() {
-                if (blaster) {
-                        return blaster->update();
-                }
+        services.debug->log("Loaded bank count: " + std::to_string(banks.size()));
 
-                return true;
+        blaster = std::make_unique<Blaster>(services, banks);
+
+        services.debug->log("App initialization complete");
+        return true;
+    }
+
+    bool tickApp() {
+        if (!blaster) {
+            if (services.debug) {
+                services.debug->error("tickApp: blaster not initialized");
+            }
+            return false;
         }
+
+        if (services.input) {
+            services.input->update();
+        }
+
+        if (services.audio) {
+            services.audio->update();
+        }
+
+        if (services.lights) {
+            services.lights->update();
+        }
+
+        return blaster->update();
+    }
 }
 
 #ifdef PLATFORM_PC
 
 int main() {
-        services = PCPlatformFactory::create();
+    services = PCPlatformFactory::create();
 
-        if (!initializeApp()) {
-                return 1;
-        }
+    if (!initializeApp()) {
+        return 1;
+    }
 
-        while (tickApp()) {
-        }
+    while (tickApp()) {
+    }
 
-        return 0;
+    return 0;
 }
 
 #endif
@@ -70,15 +85,15 @@ int main() {
 #ifdef PLATFORM_ESP
 
 void setup() {
-        Serial.begin(115200);
-        delay(200);
+    Serial.begin(115200);
+    delay(200);
 
-        services = ESPPlatformFactory::create();
-        initializeApp();
+    services = ESPPlatformFactory::create();
+    initializeApp();
 }
 
 void loop() {
-        tickApp();
+    tickApp();
 }
 
 #endif

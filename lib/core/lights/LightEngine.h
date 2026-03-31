@@ -18,7 +18,7 @@ namespace Lights {
     public:
         LedLights(size_t numLEDs);
 
-        void step() override;
+        void update() override;
         void addAnimation(std::shared_ptr<Animations::IAnimation> anim) override;
         [[nodiscard]] const std::vector<LED>& getLEDs() const override;
 
@@ -38,7 +38,7 @@ namespace Lights {
             m_lights->addAnimation(std::make_shared<Animations::Blink>(r, g, b));
         }
         void step() {
-            m_lights->step();
+            m_lights->update();
         }
 
     private:

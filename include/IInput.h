@@ -1,16 +1,16 @@
-#ifndef BLASTER_FIRMWARE_IINPUT_H
-#define BLASTER_FIRMWARE_IINPUT_H
-
 #pragma once
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
-#include <unordered_map>
 
-enum class ButtonID {
-    Trigger,
+enum class ButtonID : std::size_t {
+    Trigger = 0,
     NextWeapon,
     PreviousWeapon,
+    Reload,
     Quit,
+    Count
 };
 
 class IInput {
@@ -31,6 +31,7 @@ public:
     bool wasPrevShortPressed() const;
     bool wasPrevLongPressed() const;
 
+    bool wasReloadPressed() const;
     bool wasQuitPressed() const;
 
 protected:
@@ -38,6 +39,13 @@ protected:
     virtual std::uint32_t nowMs() const = 0;
 
 private:
+    struct ButtonConfig {
+        bool enableShortPress = false;
+        bool enableLongPress = false;
+        std::uint32_t debounceMs = 20;
+        std::uint32_t longPressMs = 500;
+    };
+
     struct ButtonState {
         bool stablePressed = false;
         bool lastRawPressed = false;
@@ -54,15 +62,35 @@ private:
         bool initialized = false;
     };
 
+    static constexpr std::size_t kButtonCount =
+        static_cast<std::size_t>(ButtonID::Count);
+
+    static constexpr std::size_t toIndex(const ButtonID button) {
+        return static_cast<std::size_t>(button);
+    }
+
+    inline static constexpr std::array<ButtonID, kButtonCount> allButtons_ = {
+        ButtonID::Trigger,
+        ButtonID::NextWeapon,
+        ButtonID::PreviousWeapon,
+        ButtonID::Reload,
+        ButtonID::Quit
+    };
+
+    inline static constexpr std::array<ButtonConfig, kButtonCount> buttonConfigs_ = {{
+        {false, false, 20, 500}, // Trigger
+        {true,  true,  20, 500}, // NextWeapon
+        {true,  true,  20, 500}, // PreviousWeapon
+        {true,  false, 20, 500}, // Reload
+        {false, false, 20, 500}  // Quit
+    }};
+
     ButtonState& stateFor(ButtonID button);
     const ButtonState& stateFor(ButtonID button) const;
 
-    void updateButton(ButtonID button, std::uint32_t t);
+    const ButtonConfig& configFor(ButtonID button) const;
 
-    std::unordered_map<ButtonID, ButtonState> buttonStates_;
+    void updateButton(ButtonID button, std::uint32_t now);
 
-    static constexpr std::uint32_t debounceMs_ = 10;
-    static constexpr std::uint32_t longPressMs_ = 500;
+    std::array<ButtonState, kButtonCount> buttonStates_{};
 };
-
-#endif

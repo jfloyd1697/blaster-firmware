@@ -7,7 +7,7 @@ namespace Lights {
         : leds_(numLEDs)
     {}
 
-    void LedLights::step() {
+    void LedLights::update() {
         for (auto& anim : animations_) {
             anim->step(leds_);
         }

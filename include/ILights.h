@@ -23,7 +23,7 @@ namespace Lights {
     public:
         virtual ~ILights() = default;
 
-        virtual void step() = 0;
+        virtual void update() = 0;
         virtual void addAnimation(std::shared_ptr<Animations::IAnimation> anim) = 0;
         [[nodiscard]] virtual const std::vector<LED>& getLEDs() const = 0;
     };

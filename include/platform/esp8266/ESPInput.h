@@ -23,7 +23,7 @@ public:
 
     void begin() const {
         if (m_pins.trigger >= 0) {
-            pinMo de(m_pins.trigger, INPUT_PULLUP);
+            pinMode(m_pins.trigger, INPUT_PULLUP);
         }
         if (m_pins.nextWeapon >= 0) {
             pinMode(m_pins.nextWeapon, INPUT_PULLUP);

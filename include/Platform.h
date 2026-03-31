@@ -8,10 +8,11 @@
 #pragma once
 #include <memory>
 #include "IAudioEngine.h"
-#include "IInput.h"
+#include "input/IInput.h"
 #include "ITime.h"
 #include "IDebug.h"
 #include "ILights.h"
+#include "weapons/IWeaponLoader.h"
 
 struct PlatformServices {
     std::unique_ptr<IAudioEngine> audio;
@@ -19,6 +20,7 @@ struct PlatformServices {
     std::unique_ptr<ITime> time;
     std::unique_ptr<IDebug> debug;
     std::unique_ptr<Lights::ILights> lights;
+    std::unique_ptr<IWeaponLoader> loader;
     std::string assetRoot;
 
     PlatformServices() = default;

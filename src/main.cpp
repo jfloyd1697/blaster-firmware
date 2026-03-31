@@ -2,19 +2,16 @@
 #include <string>
 #include <vector>
 
-#ifdef PLATFORM_ESP
-#include <Arduino.h>
-#endif
-
 #include "Blaster.h"
 #include "Platform.h"
-#include "weapons/WeaponJSONLoader.h"
+#include "weapons/IWeaponLoader.h"
 
 #ifdef PLATFORM_PC
 #include "platform/pc/PCPlatform.h"
 #endif
 
 #ifdef PLATFORM_ESP
+#include <Arduino.h>
 #include "platform/esp8266/ESPPlatform.h"
 #endif
 
@@ -26,7 +23,7 @@ namespace {
         services.debug->log("App initialization starting");
 
         const std::string weaponJsonPath = services.assetRoot + "weapon_profiles.json";
-        auto banks = loadSoundBanks(weaponJsonPath);
+        auto banks = services.loader -> loadSoundBanks(weaponJsonPath);
 
         if (banks.empty()) {
             services.debug->error("No sound banks found!");

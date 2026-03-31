@@ -33,13 +33,13 @@ Place components to minimize wire length:
 
 🎧 Audio Wiring (Keep VERY Short)
 
-  NodeMCU   →   MAX98357A   Wire Color   Length
-  --------- --- ----------- ------------ ------------
-  VU        →   VIN         Red          Short
-  GND       →   GND         Black        Short
-  D4        →   LRC         White        Very short
-  D8        →   BCLK        Gray         Very short
-  RX        →   DIN         Brown        Very short
+  NodeMCU   →   MAX98357A   Notes                     Wire Color   Length
+  --------- --- ----------- ------------------------- ------------ ------------
+  VU        →   VIN         5V for best audio power   Red          Short
+  GND       →   GND         Common ground             Black        Short
+  D4        →   LRC         Word select (WS)          White        Very short
+  D2        →   BCLK        Bit clock                 Gray         Very short
+  RX        →   DIN         Data in                   Brown        Very short
 
 ⚠️ Keep all I2S wires under ~2–3 inches if possible
 
@@ -58,14 +58,14 @@ Place components to minimize wire length:
 
 💾 microSD Wiring (Moderate Length OK)
 
-  NodeMCU   →   SD Module   Wire Color
-  --------- --- ----------- ------------
-  3V3       →   VCC         Orange
-  GND       →   GND         Black
-  D7        →   MOSI        Yellow
-  D6        →   MISO        Green
-  D5        →   SCK         Blue
-  D1        →   CS          Purple
+  NodeMCU   →   SD Module   Notes                     Wire
+  --------- --- ----------- ------------------------- ------------
+  3V3       →   VCC         3.3V ONLY (important)     Orange
+  GND       →   GND         Common ground             Black
+  D7        →   MOSI        SPI data out              Yellow
+  D6        →   MISO        SPI data in               Green
+  D5        →   SCK         SPI clock                 Blue
+  D1        →   CS          Chip select               Purple
 
 ✔ Keep under ~6 inches if possible
 
@@ -73,13 +73,32 @@ Place components to minimize wire length:
 
 🎮 Button Wiring
 
-  Button    Pin   Wire     Notes
-  --------- ----- -------- ---------------------------
-  Trigger   D2    White    Primary input
-  Reload    D0    Gray     Optional
-  Mode      D3    Yellow   Avoid holding during boot
+  Button         Pin     GPIO   Notes
+  -------------- ------- ------ -------------------------
+  Trigger        D0      GPIO16 OK (simple input only)
+  Reload         D3      GPIO0  ⚠ must stay HIGH at boot
+  Next           TX      GPIO1  OK if not using serial prints heavily
+  Previous       A0      ADC    Optional (analog ladder)
+  Mode / Bank    D1      GPIO5  (if SD CS moved)
 
 Wiring: Pin → Button → GND
+
+🔌 Ladder Wiring
+
+    3V3
+     |
+    [10k]  ← Pull-up
+     |
+     +------ A0 (NodeMCU)
+     |
+     +--[Button]--[1k]--- GND      → Next
+     |
+     +--[Button]--[2.2k]- GND      → Previous
+     |
+     +--[Button]--[4.7k]- GND      → Reload
+     |
+     +--[Button]--[10k]-- GND      → Bank
+
 
 ------------------------------------------------------------------------
 

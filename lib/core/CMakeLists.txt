@@ -1,19 +1,15 @@
 cmake_minimum_required(VERSION 3.16)
 
-add_library(core STATIC
-        Blaster.cpp
-        weapons/WeaponJSONLoader.cpp
-        lights/LightEngine.cpp
-        input/IInput.cpp
+file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
+
+add_library(core ${CORE_SOURCES})
 
 target_include_directories(core
         PUBLIC
-        .
-        ${CMAKE_SOURCE_DIR}/external/nlohmann
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/include
 )
 
-target_link_libraries(core
-        PUBLIC
-        blaster_core
-)
+target_compile_features(core PUBLIC cxx_std_17)

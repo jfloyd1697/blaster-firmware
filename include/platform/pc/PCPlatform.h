@@ -13,12 +13,10 @@
 #include <memory>
 #include <string>
 #include <windows.h>    // For WinMM audio
+#include <fstream>
+#include <sstream>
 
-#include "IAudioEngine.h"
-#include "IDebug.h"
-#include "ITime.h"
 #include "PCInput.h"
-#include "Platform.h"
 
 // ------------------------- PC Debug -------------------------
 struct PCDebug : public IDebug {
@@ -70,6 +68,21 @@ struct PCAudioEngine : public IAudioEngine {
 
 private:
     IDebug *m_debug;
+};
+
+
+class PCWeaponLoader : public IWeaponLoader {
+protected:
+    std::string loadText(const std::string& path) override {
+        std::ifstream file(path);
+        if (!file.is_open()) {
+            return {};
+        }
+
+        std::ostringstream buffer;
+        buffer << file.rdbuf();
+        return buffer.str();
+    }
 };
 
 

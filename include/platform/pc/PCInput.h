@@ -5,7 +5,7 @@
 
 #include <chrono>
 
-#include "IInput.h"
+#include "input/IInput.h"
 
 class PCInput final : public IInput {
 public:

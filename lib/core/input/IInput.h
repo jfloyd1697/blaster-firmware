@@ -10,33 +10,38 @@ enum class ButtonID : std::size_t {
     PreviousWeapon,
     Reload,
     Quit,
-    Count
 };
 
 class IInput {
 public:
     IInput();
+
     virtual ~IInput() = default;
 
     void update();
 
-    bool isTriggerPressed() const;
+    [[nodiscard]] bool isTriggerPressed() const;
 
-    bool wasTriggerPressed() const;
-    bool wasTriggerReleased() const;
+    [[nodiscard]] bool wasTriggerPressed() const;
 
-    bool wasNextShortPressed() const;
-    bool wasNextLongPressed() const;
+    [[nodiscard]] bool wasTriggerReleased() const;
 
-    bool wasPrevShortPressed() const;
-    bool wasPrevLongPressed() const;
+    [[nodiscard]] bool wasNextShortPressed() const;
 
-    bool wasReloadPressed() const;
-    bool wasQuitPressed() const;
+    [[nodiscard]] bool wasNextLongPressed() const;
+
+    [[nodiscard]] bool wasPrevShortPressed() const;
+
+    [[nodiscard]] bool wasPrevLongPressed() const;
+
+    [[nodiscard]] bool wasReloadPressed() const;
+
+    [[nodiscard]] bool wasQuitPressed() const;
 
 protected:
-    virtual bool readRawButton(ButtonID button) const = 0;
-    virtual std::uint32_t nowMs() const = 0;
+    [[nodiscard]] virtual bool readRawButton(ButtonID button) const = 0;
+
+    [[nodiscard]] virtual std::uint32_t nowMs() const = 0;
 
 private:
     struct ButtonConfig {
@@ -63,13 +68,13 @@ private:
     };
 
     static constexpr std::size_t kButtonCount =
-        static_cast<std::size_t>(ButtonID::Count);
+            static_cast<std::size_t>(ButtonID::Quit) + 1;
 
     static constexpr std::size_t toIndex(const ButtonID button) {
         return static_cast<std::size_t>(button);
     }
 
-    inline static constexpr std::array<ButtonID, kButtonCount> allButtons_ = {
+    static constexpr std::array<ButtonID, kButtonCount> allButtons_ = {
         ButtonID::Trigger,
         ButtonID::NextWeapon,
         ButtonID::PreviousWeapon,
@@ -77,18 +82,21 @@ private:
         ButtonID::Quit
     };
 
-    inline static constexpr std::array<ButtonConfig, kButtonCount> buttonConfigs_ = {{
-        {false, false, 20, 500}, // Trigger
-        {true,  true,  20, 500}, // NextWeapon
-        {true,  true,  20, 500}, // PreviousWeapon
-        {true,  false, 20, 500}, // Reload
-        {false, false, 20, 500}  // Quit
-    }};
+    static constexpr std::array<ButtonConfig, kButtonCount> buttonConfigs_ = {
+        {
+            {false, false, 20, 500}, // Trigger
+            {true, true, 20, 500}, // NextWeapon
+            {true, true, 20, 500}, // PreviousWeapon
+            {true, false, 20, 500}, // Reload
+            {false, false, 20, 500} // Quit
+        }
+    };
 
-    ButtonState& stateFor(ButtonID button);
-    const ButtonState& stateFor(ButtonID button) const;
+    ButtonState &stateFor(ButtonID button);
 
-    const ButtonConfig& configFor(ButtonID button) const;
+    [[nodiscard]] const ButtonState &stateFor(ButtonID button) const;
+
+    [[nodiscard]] const ButtonConfig &configFor(ButtonID button) const;
 
     void updateButton(ButtonID button, std::uint32_t now);
 

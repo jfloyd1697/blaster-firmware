@@ -1,26 +1,15 @@
-#include "WeaponJSONLoader.h"
+#include "weapons/IWeaponLoader.h"
 
-#include <fstream>
-#include <iostream>
 #include <string>
 #include <unordered_map>
 
 #include <nlohmann/json.hpp>
 
-std::vector<SoundBank> loadSoundBanks(const std::string& jsonFilePath) {
+std::vector<SoundBank> IWeaponLoader::parseSoundBanksJson(const std::string& jsonText) {
     std::vector<SoundBank> banks;
 
-    std::ifstream file(jsonFilePath);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open weapon JSON file: " << jsonFilePath << std::endl;
-        return banks;
-    }
-
-    nlohmann::json j;
-    file >> j;
-
-    if (!j.is_array()) {
-        std::cerr << "Expected top-level JSON array in: " << jsonFilePath << std::endl;
+    const auto j = nlohmann::json::parse(jsonText, nullptr, false);
+    if (j.is_discarded() || !j.is_array()) {
         return banks;
     }
 
@@ -29,7 +18,6 @@ std::vector<SoundBank> loadSoundBanks(const std::string& jsonFilePath) {
     for (const auto& item : j) {
         WeaponProfile profile;
         if (!WeaponProfile::from_json(item, profile)) {
-            std::cerr << "Skipping invalid weapon entry in JSON" << std::endl;
             continue;
         }
 
@@ -44,4 +32,13 @@ std::vector<SoundBank> loadSoundBanks(const std::string& jsonFilePath) {
     }
 
     return banks;
+}
+
+std::vector<SoundBank> IWeaponLoader::loadSoundBanks(const std::string& jsonFilePath) {
+    const std::string jsonText = loadText(jsonFilePath);
+    if (jsonText.empty()) {
+        return {};
+    }
+
+    return parseSoundBanksJson(jsonText);
 }

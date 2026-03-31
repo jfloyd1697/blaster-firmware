@@ -11,6 +11,8 @@
 class IAudioEngine {
 public:
     virtual ~IAudioEngine() = default;
+
+    virtual bool begin() = 0;
     virtual void update() = 0;
     virtual void playSound(const std::string& file) = 0;
     virtual void stop() = 0;

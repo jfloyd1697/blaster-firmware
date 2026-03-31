@@ -50,7 +50,7 @@ void DemoApp::handleEvents() {
     }
 }
 
-void DemoApp::renderLEDs() {
+void DemoApp::renderLEDs() const {
     const auto& leds = leds_->getLEDs();
     int numLEDs = leds.size();
     int cx = 300, cy = 200, radius = 100;

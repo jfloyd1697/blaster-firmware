@@ -6,9 +6,9 @@
 #define BLASTERFIRMWARE_DEBUGLIGHTS_H
 
 #pragma once
-#include "ILights.h"
+#include "../../include/ILights.h"
 #include <memory>
-#include "IDebug.h"
+#include "../../include/IDebug.h"
 
 namespace Lights {
 

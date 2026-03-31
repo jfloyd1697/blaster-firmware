@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 # Create executable
 add_executable(BlasterApp
         main.cpp
-        ../platform/pc/PCPlatform.h
+        ../include/platform/pc/PCPlatform.h
 )
 
 # Include core and platform headers
@@ -31,7 +31,7 @@ add_custom_command(TARGET BlasterApp POST_BUILD
 # Create executable
 add_executable(TestInput
         test_input.cpp
-        ../platform/pc/PCPlatform.h
+        ../include/platform/pc/PCPlatform.h
 )
 
 # Include core and platform headers

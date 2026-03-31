@@ -7,7 +7,7 @@
 
 #pragma once
 #include "Animation.h"
-#include "ILights.h"
+#include "../../include/ILights.h"
 
 namespace Lights::Animations {
 

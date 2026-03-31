@@ -1,7 +1,7 @@
 #include <iostream>
 #include <thread>
 
-#include "WeaponJSONLoader.h"
+#include "../core/weapons/WeaponJSONLoader.h"
 #include "../core/Blaster.h"
 #include "../platform/pc/PCPlatform.h"  // contains PCPlatformFactory
 

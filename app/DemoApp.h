@@ -20,7 +20,7 @@ public:
 private:
     void handleEvents();
     void render();
-    void renderLEDs();
+    void renderLEDs() const;
 
     SDL_Window* window_;
     SDL_Renderer* renderer_;

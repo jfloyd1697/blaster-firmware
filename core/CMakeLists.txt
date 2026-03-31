@@ -1,22 +1,19 @@
 cmake_minimum_required(VERSION 3.16)
-project(core)
 
-add_library(core
+add_library(core STATIC
         Blaster.cpp
-        WeaponJSONLoader.cpp
-        IDebug.h
-        lights/DebugLights.h
-        lights/Animation.h
-        lights/LightEngine.h
-        lights/LightEnigine.cpp
+        weapons/WeaponJSONLoader.cpp
+        lights/LightEngine.cpp
+        input/IInput.cpp
 )
 
-# Include paths
 target_include_directories(core
         PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}           # core headers
-        ${CMAKE_SOURCE_DIR}/external/nlohmann # nlohmann/json.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/external/nlohmann
 )
 
-
-
+target_link_libraries(core
+        PUBLIC
+        blaster_core
+)

@@ -6,7 +6,7 @@
 #define BLASTERFIRMWARE_LIGHTENGINE_H
 
 #pragma once
-#include "ILights.h"
+#include "../../include/ILights.h"
 #include <vector>
 #include <memory>
 

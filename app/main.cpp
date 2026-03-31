@@ -4,8 +4,8 @@
 #include <chrono>
 #include <vector>
 #include "../core/Blaster.h"
-#include "../core/WeaponJSONLoader.h"
-#include "../platform/pc/PCPlatform.h"
+#include "../core/weapons/WeaponJSONLoader.h"
+#include "../include/platform/pc/PCPlatform.h"
 
 
 int main() {
@@ -13,14 +13,14 @@ int main() {
     auto services = PCPlatformFactory::create();
 
     // Load weapon profiles
-    std::vector<WeaponProfile> weapons = loadWeaponProfiles(services.assetRoot + "weapon_profiles.json");
-    if (weapons.empty()) {
+    std::vector<SoundBank> banks = loadSoundBanks(services.assetRoot + "weapon_profiles.json");
+    if (banks.empty()) {
         std::cerr << "No weapons found!" << std::endl;
         return 1;
     }
 
     // Create the Blaster
-    Blaster blaster(services, weapons);
+    Blaster blaster(services, banks);
 
     std::cout << "Blaster PC Demo - Space: Fire | Left: Prev Weapon | Right: Next Weapon | ESC: Quit\n" << std::endl;
 

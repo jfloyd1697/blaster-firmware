@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 #include "../../../../lib/esp8266_platform/include/ESPPlatform.h"
-#include "weapons/IWeaponLoader.h"
+#include "../../../lib/core/weapons/IWeaponLoader.h"
 
 namespace {
     PlatformServices services;

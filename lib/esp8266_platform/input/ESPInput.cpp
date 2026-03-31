@@ -1,4 +1,4 @@
-#include "platform/esp8266/input/ESPInput.h"
+#include "ESPInput.h"
 
 #include <Arduino.h>
 

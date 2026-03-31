@@ -1,4 +1,4 @@
-#include "platform/esp8266/audio/BasicESPAudioBackend.h"
+#include "BasicESPAudioBackend.h"
 
 #include <Arduino.h>
 #include <SD.h>

@@ -1,5 +1,5 @@
-#include "platform/esp8266/audio/ESPAudioEngine.h"
-#include "platform/esp8266/audio/IAudioBackend.h"
+#include "ESPAudioEngine.h"
+#include "audio/IAudioBackend.h"
 
 ESPAudioEngine::ESPAudioEngine(std::unique_ptr<IAudioBackend> backend)
     : m_backend(std::move(backend)) {

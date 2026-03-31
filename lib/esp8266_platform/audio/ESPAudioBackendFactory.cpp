@@ -1,30 +1,31 @@
+#include "ESPAudioBackendFactory.h"
+
 #include "IAudioEngine.h"
-#include "platform/esp8266/audio/ESPAudioBackendFactory.h"
-#include "platform/esp8266/audio/BasicESPAudioBackend.h"
-#include "platform/esp8266/audio/OverlapESPAudioBackend.h"
-#include "platform/esp8266/audio/PseudoOverlapESPAudioBackend.h"
-#include "platform/esp8266/audio/ESPAudioEngine.h"
+#include "audio/AudioEngine.h"
+#include "BasicESPAudioBackend.h"
+#include "OverlapESPAudioBackend.h"
+#include "PseudoOverlapESPAudioBackend.h"
 
 std::unique_ptr<IAudioEngine> createESPAudioEngine(
     const ESPAudioBackendType type,
     IDebug* debug,
     ITime* time,
     const std::size_t overlapVoices,
-    const uint32_t pseudoOverlapMs
+    const std::uint32_t pseudoOverlapMs
 ) {
     switch (type) {
         case ESPAudioBackendType::Basic:
-            return std::make_unique<ESPAudioEngine>(
+            return std::make_unique<AudioEngine>(
                 std::make_unique<BasicESPAudioBackend>(debug)
             );
 
         case ESPAudioBackendType::Overlap:
-            return std::make_unique<ESPAudioEngine>(
+            return std::make_unique<AudioEngine>(
                 std::make_unique<OverlapESPAudioBackend>(overlapVoices, debug)
             );
 
         case ESPAudioBackendType::PseudoOverlap:
-            return std::make_unique<ESPAudioEngine>(
+            return std::make_unique<AudioEngine>(
                 std::make_unique<PseudoOverlapESPAudioBackend>(time, debug, pseudoOverlapMs)
             );
     }

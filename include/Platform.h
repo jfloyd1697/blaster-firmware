@@ -7,12 +7,14 @@
 
 #pragma once
 #include <memory>
+
 #include "IAudioEngine.h"
-#include "input/IInput.h"
-#include "ITime.h"
 #include "IDebug.h"
 #include "ILights.h"
+#include "ITime.h"
+#include "IInput.h"
 #include "weapons/IWeaponLoader.h"
+
 
 struct PlatformServices {
     std::unique_ptr<IAudioEngine> audio;
@@ -24,13 +26,14 @@ struct PlatformServices {
     std::string assetRoot;
 
     PlatformServices() = default;
+
     ~PlatformServices() = default;
 
-    PlatformServices(const PlatformServices&) = delete;             // no copy
-    PlatformServices& operator=(const PlatformServices&) = delete;  // no copy
+    PlatformServices(const PlatformServices &) = delete; // no copy
+    PlatformServices &operator=(const PlatformServices &) = delete; // no copy
 
-    PlatformServices(PlatformServices&&) noexcept = default;        // allow move
-    PlatformServices& operator=(PlatformServices&&) noexcept = default;
+    PlatformServices(PlatformServices &&) noexcept = default; // allow move
+    PlatformServices &operator=(PlatformServices &&) noexcept = default;
 };
 
 #endif //BLASTER_FIRMWARE_PLATFORM_H

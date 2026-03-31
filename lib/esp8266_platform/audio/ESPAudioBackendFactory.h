@@ -1,7 +1,3 @@
-//
-// Created by user on 3/31/2026.
-//
-
 #ifndef BLASTER_FIRMWARE_ESPAUDIOBACKENDFACTORY_H
 #define BLASTER_FIRMWARE_ESPAUDIOBACKENDFACTORY_H
 
@@ -27,4 +23,4 @@ std::unique_ptr<IAudioEngine> createESPAudioEngine(
     uint32_t pseudoOverlapMs = 30
 );
 
-#endif //BLASTER_FIRMWARE_ESPAUDIOBACKENDFACTORY_H
+#endif

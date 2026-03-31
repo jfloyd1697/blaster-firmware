@@ -7,26 +7,31 @@
 #include "weapons/IWeaponLoader.h"
 
 #ifdef PLATFORM_PC
-#include "platform/pc/PCPlatform.h"
+#include "pc_platform/PCPlatform.h"
 #endif
 
 #ifdef PLATFORM_ESP
 #include <Arduino.h>
-#include "platform/esp8266/ESPPlatform.h"
+#include "ESPPlatform.h"
 #endif
 
 namespace {
     PlatformServices services;
     std::unique_ptr<Blaster> blaster;
+    bool appInitialized = false;
 
     bool initializeApp() {
+        if (!services.debug || !services.loader) {
+            return false;
+        }
+
         services.debug->log("App initialization starting");
 
         const std::string weaponJsonPath = services.assetRoot + "weapon_profiles.json";
-        auto banks = services.loader -> loadSoundBanks(weaponJsonPath);
+        auto banks = services.loader->loadSoundBanks(weaponJsonPath);
 
         if (banks.empty()) {
-            services.debug->error("No sound banks found!");
+            services.debug->error("No sound banks found");
             return false;
         }
 
@@ -82,15 +87,23 @@ int main() {
 #ifdef PLATFORM_ESP
 
 void setup() {
-    Serial.begin(115200);
-    delay(200);
-
     services = ESPPlatformFactory::create();
-    initializeApp();
+    appInitialized = initializeApp();
+
+    if (!appInitialized && services.debug) {
+        services.debug->error("setup: app initialization failed");
+    }
 }
 
 void loop() {
-    tickApp();
+    if (!appInitialized) {
+        delay(100);
+        return;
+    }
+
+    if (!tickApp()) {
+        delay(1);
+    }
 }
 
 #endif

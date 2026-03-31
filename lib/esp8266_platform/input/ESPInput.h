@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "input/IInput.h"
+#include "IInput.h"
 
 class ITime;
 

@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
 
-# Automatically pick up all .cpp files (audio/, input/, etc.)
 file(GLOB_RECURSE ESP8266_PLATFORM_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )

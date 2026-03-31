@@ -1,0 +1,12 @@
+{
+  "name": "esp8266_platform",
+  "version": "1.0.0",
+  "description": "ESP8266 platform layer for blaster firmware",
+  "keywords": ["esp8266", "audio", "platform"],
+  "build": {
+    "includeDir": "include",
+    "srcDir": "src"
+  },
+  "frameworks": ["arduino"],
+  "platforms": ["espressif8266"]
+}

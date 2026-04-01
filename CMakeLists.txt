@@ -4,45 +4,44 @@ project(blaster_firmware)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# -------------------------
 # Platform selection
+# -------------------------
 set(BLASTER_PLATFORM "PC" CACHE STRING "Target platform")
 set_property(CACHE BLASTER_PLATFORM PROPERTY STRINGS PC ESP)
 
-# Submodules
+# -------------------------
+# Modules (libraries)
+# -------------------------
 add_subdirectory(lib/core)
 add_subdirectory(lib/audio)
+add_subdirectory(lib/esp8266_platform)
+add_subdirectory(lib/pc_platform)
 
-if(BLASTER_PLATFORM STREQUAL "PC")
-#    add_subdirectory(lib/pc_platform)
-elseif(BLASTER_PLATFORM STREQUAL "ESP")
-    add_subdirectory(lib/esp8266_platform)
-endif()
-
+# -------------------------
 # Main executable
+# -------------------------
 add_executable(BlasterApp
         src/main.cpp
 )
 
-# Platform-specific defines
+# -------------------------
+# Platform-specific config
+# -------------------------
 if(BLASTER_PLATFORM STREQUAL "PC")
     target_compile_definitions(BlasterApp PRIVATE PLATFORM_PC)
     target_link_libraries(BlasterApp PRIVATE winmm)
+    target_link_libraries(BlasterApp PRIVATE pc_platform)
 elseif(BLASTER_PLATFORM STREQUAL "ESP")
     target_compile_definitions(BlasterApp PRIVATE PLATFORM_ESP)
+    target_link_libraries(BlasterApp PRIVATE esp8266_platform)
 endif()
 
-# Shared includes
-target_include_directories(BlasterApp
-        PRIVATE
-        ${CMAKE_SOURCE_DIR}/include
-)
-
-# Link everything
+# -------------------------
+# Link modules
+# -------------------------
 target_link_libraries(BlasterApp
         PRIVATE
         core
         audio
 )
-if(BLASTER_PLATFORM STREQUAL "ESP")
-    target_link_libraries(BlasterApp PRIVATE esp8266_platform)
-endif()

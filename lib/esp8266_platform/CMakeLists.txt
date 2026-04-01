@@ -1,10 +1,8 @@
-cmake_minimum_required(VERSION 3.16)
-
-file(GLOB_RECURSE ESP8266_PLATFORM_SOURCES CONFIGURE_DEPENDS
-        "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+file(GLOB_RECURSE ESP_SOURCES CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
 
-add_library(esp8266_platform ${ESP8266_PLATFORM_SOURCES})
+add_library(esp8266_platform ${ESP_SOURCES})
 
 target_include_directories(esp8266_platform
         PUBLIC
@@ -16,6 +14,7 @@ target_link_libraries(esp8266_platform
         PUBLIC
         core
         audio
+        lights
 )
 
 target_compile_definitions(esp8266_platform

@@ -2,16 +2,15 @@
 #include <string>
 #include <vector>
 
-#include "Blaster.h"
-#include "Platform.h"
-#include "weapons/IWeaponLoader.h"
+#include "core/Blaster.h"
+#include "core/Platform.h"
+#include "core/weapons/IWeaponLoader.h"
 
 #ifdef PLATFORM_PC
-#include "pc_platform/PCPlatform.h"
+#include "platform/pc/PCPlatform.h"
 #endif
 
 #ifdef PLATFORM_ESP
-#include <Arduino.h>
 #include "ESPPlatform.h"
 #endif
 

@@ -16,7 +16,13 @@
 #include <fstream>
 #include <sstream>
 
-#include "PCInput.h"
+#include "core/Platform.h"
+#include "core/audio/IAudioEngine.h"
+#include "core/debug/IDebug.h"
+#include "core/time/ITime.h"
+#include "core/weapons/IWeaponLoader.h"
+
+#include "input/PCInput.h"
 
 // ------------------------- PC Debug -------------------------
 struct PCDebug : public IDebug {
@@ -45,6 +51,11 @@ struct PCTime : public ITime {
 struct PCAudioEngine : public IAudioEngine {
     explicit PCAudioEngine(IDebug *debugService = nullptr)
         : m_debug(debugService) {
+    }
+
+    bool begin() override {;
+        m_debug->log("PCAudioEngine: Initialization complete");
+        return true;
     }
 
     void update() override {
@@ -94,6 +105,7 @@ struct PCPlatformFactory {
         services.input = std::make_unique<PCInput>();
         services.time = std::make_unique<PCTime>();
         services.audio = std::make_unique<PCAudioEngine>(services.debug.get());
+        services.loader = std::make_unique<PCWeaponLoader>();
         services.assetRoot = "assets/"; // Default asset root
         return services;
     }

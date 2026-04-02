@@ -3,7 +3,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include "core/time/ITime.h"
+
+class ITime;
 
 enum class ButtonID : std::size_t {
     Trigger = 0,
@@ -21,7 +22,7 @@ public:
 
     void update();
 
-    [[nodiscard]] bool isTriggerPressed() const;
+    [[nodiscard]] bool isTriggerHeld() const;
 
     [[nodiscard]] bool wasTriggerPressed() const;
 
@@ -97,7 +98,7 @@ private:
 
     [[nodiscard]] const ButtonState &stateFor(ButtonID button) const;
 
-    [[nodiscard]] const ButtonConfig &configFor(ButtonID button) const;
+    [[nodiscard]] static const ButtonConfig &configFor(ButtonID button);
 
     void updateButton(ButtonID button, std::uint32_t now);
 

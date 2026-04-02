@@ -19,7 +19,7 @@ public:
     ~PCAudioBackend() override = default;
     bool begin() override;
     void update() override;
-    void playSound(const std::string& file) override;
+    void playSound(const std::string& file, bool loop) override;
     void stop() override;
 
 private:

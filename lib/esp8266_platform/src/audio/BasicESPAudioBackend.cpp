@@ -51,7 +51,7 @@ void BasicESPAudioBackend::update() {
     }
 }
 
-void BasicESPAudioBackend::playSound(const std::string &file) {
+void BasicESPAudioBackend::playSound(const std::string &file, const bool loop) {
     stop();
 
     if (m_out == nullptr) {

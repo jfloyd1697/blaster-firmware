@@ -9,6 +9,8 @@
 #include <vector>
 #include <memory>
 
+#include "weapon_behavior/WeaponBehaviorTypes.h"
+
 namespace Animations {
     class IAnimation;
 }
@@ -24,6 +26,7 @@ public:
 
     virtual void update() = 0;
     virtual void addAnimation(std::shared_ptr<Animations::IAnimation> anim) = 0;
+    virtual void setPattern(std::shared_ptr<weapon_behavior::LightPatternDef> anim) = 0;
     [[nodiscard]] virtual const std::vector<LED>& getLEDs() const = 0;
     virtual void flash();
 };

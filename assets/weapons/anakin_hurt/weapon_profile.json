@@ -1,0 +1,251 @@
+{
+  "version": 1,
+  "weapon": "anakin_hurt",
+  "magazineSize": 4,
+  "initialState": "equip",
+  "actionSequences": {
+    "hurt_shot": [
+      {
+        "type": "play_sound_random",
+        "sounds": [
+          "assets/weapons/anakin_hurt/anakin_hurt0.wav",
+          "assets/weapons/anakin_hurt/anakin_hurt1.wav",
+          "assets/weapons/anakin_hurt/anakin_hurt2.wav"
+        ]
+      },
+      {
+        "type": "flash_muzzle"
+      },
+      {
+        "type": "flash_light",
+        "pattern": {
+          "mode": "flash",
+          "color": [255, 80, 0],
+          "brightness": 255,
+          "durationMs": 80,
+          "count": 1
+        }
+      },
+      {
+        "type": "consume_ammo",
+        "amount": 1
+      }
+    ],
+
+    "die_shot": [
+      {
+        "type": "play_sound",
+        "sound": "assets/weapons/anakin_hurt/anakin_die.wav"
+      },
+      {
+        "type": "flash_muzzle"
+      },
+      {
+        "type": "set_light",
+        "pattern": {
+          "mode": "solid",
+          "color": [255, 0, 0],
+          "brightness": 40
+        }
+      },
+      {
+        "type": "emit_shot"
+      },
+      {
+        "type": "consume_ammo",
+        "amount": 1
+      }
+    ],
+
+    "reload_fx": [
+      {
+        "type": "play_sound",
+        "sound": "assets/audio/lego_util/lego-star-wars-heart-sound.wav"
+      },
+      {
+        "type": "set_light",
+        "pattern": {
+          "mode": "pulse",
+          "color": [0, 255, 80],
+          "brightness": 180,
+          "intervalMs": 180
+        }
+      }
+    ]
+  },
+
+  "states": {
+    "equip": {
+      "onEnter": [
+        {
+          "type": "play_sound",
+          "sound": "assets/audio/lego_util/lego-star-wars-switch-character-sound.wav"
+        },
+        {
+          "type": "schedule_event",
+          "event": "idle"
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "idle",
+          "target": "idle_4"
+        }
+      ]
+    },
+
+    "idle_4": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [255, 160, 0],
+            "brightness": 180
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "idle_3",
+          "actions": [
+            { "type": "run_sequence", "name": "hurt_shot" }
+          ]
+        },
+        {
+          "event": "reload",
+          "target": "reloading"
+        }
+      ]
+    },
+
+    "idle_3": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [255, 120, 0],
+            "brightness": 180
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "idle_2",
+          "actions": [
+            { "type": "run_sequence", "name": "hurt_shot" }
+          ]
+        },
+        {
+          "event": "reload",
+          "target": "reloading"
+        }
+      ]
+    },
+
+    "idle_2": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [255, 80, 0],
+            "brightness": 180
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "idle_1",
+          "actions": [
+            { "type": "run_sequence", "name": "hurt_shot" }
+          ]
+        },
+        {
+          "event": "reload",
+          "target": "reloading"
+        }
+      ]
+    },
+
+    "idle_1": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [255, 30, 0],
+            "brightness": 180
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "dead",
+          "actions": [
+            { "type": "run_sequence", "name": "die_shot" }
+          ]
+        },
+        {
+          "event": "reload",
+          "target": "reloading"
+        }
+      ]
+    },
+
+    "dead": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [80, 0, 0],
+            "brightness": 20
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "reload",
+          "target": "reloading"
+        }
+      ]
+    },
+
+    "reloading": {
+      "onEnter": [
+        { "type": "run_sequence", "name": "reload_fx" },
+        { "type": "schedule_event", "event": "reload_complete" }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "reload_complete",
+          "target": "idle_4",
+          "actions": [
+            {
+              "type": "set_light",
+              "pattern": {
+                "mode": "pulse",
+                "color": [0, 255, 80],
+                "brightness": 220,
+                "intervalMs": 160
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

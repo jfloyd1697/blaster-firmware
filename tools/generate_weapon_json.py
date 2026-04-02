@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ASSETS_ROOT = Path("../assets").resolve()
-OUTPUT_FILE = Path("../assets/audio/weapon_profiles.json")
+OUTPUT_FILE = Path("../assets/weapons/weapon_profiles.json")
 
 def make_weapon(name, path):
     return {

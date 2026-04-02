@@ -3,7 +3,6 @@
 
 #include "core/Blaster.h"
 #include "core/Platform.h"
-#include "core/weapons/IWeaponLoader.h"
 #include "platform/pc/PCPlatform.h"
 
 // #ifdef PLATFORM_PC
@@ -26,13 +25,13 @@ namespace {
 
         services.debug->log("App initialization starting");
 
-        const std::string weaponJsonPath = services.assetRoot + "audio/weapon_profiles.json";
-        auto banks = services.loader->loadSoundBanks(weaponJsonPath, services.debug.get());
+        const std::string weaponJsonPath = services.assetRoot + "weapons/chainsaw/weapon_profile.json";
+        auto banks = services.loadSoundBanks(weaponJsonPath);
 
-        if (banks.empty()) {
-            services.debug->error("No sound banks found");
-            return false;
-        }
+        // if (banks.empty()) {
+        //     services.debug->error("No sound banks found");
+        //     return false;
+        // }
 
         services.debug->log("Loaded bank count: " + std::to_string(banks.size()));
 

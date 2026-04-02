@@ -11,17 +11,16 @@
 #include <memory>
 #include <string>
 #include <fstream>
-#include <sstream>
 
 #include "audio/AudioEngine.h"
 #include "core/Platform.h"
 #include "core/debug/IDebug.h"
 #include "core/time/ITime.h"
-#include "core/weapons/IWeaponLoader.h"
 
 #include "platform/pc/input/PCInput.h"
 #include "platform/pc/audio/PCAudioBackend.h"
 #include "platform/pc/PCPlatform.h"
+#include "platform/pc/text_resource_loader/PCTextResourceLoader.h"
 
 
 // ------------------------- PC Debug -------------------------
@@ -46,61 +45,7 @@ struct PCTime : public ITime {
     }
 };
 
-// ------------------------- PC Weapon Loader -------------------------
 
-
-class PCWeaponLoader : public IWeaponLoader {
-protected:
-    std::string loadText(const std::string& path, IDebug* debug) override {
-        namespace fs = std::filesystem;
-
-        if (!fs::exists(path)) {
-            debug->error("PCWeaponLoader: file not found: " + path);
-
-            // Dump current working directory
-            const auto cwd = fs::current_path();
-            debug->error("Current working directory: " + cwd.string());
-
-            debug->error("Directory dump:");
-
-            dumpDirectory(cwd, debug, 0, 2); // limit depth to avoid spam
-
-            return {};
-        }
-
-        std::ifstream file(path);
-        if (!file.is_open()) {
-            debug->error("PCWeaponLoader: failed to open file: " + path);
-            return {};
-        }
-
-        std::ostringstream buffer;
-        buffer << file.rdbuf();
-        return buffer.str();
-    }
-
-private:
-    void dumpDirectory(const std::filesystem::path& dir,
-                       IDebug* debug,
-                       int depth,
-                       int maxDepth) {
-        namespace fs = std::filesystem;
-
-        if (depth > maxDepth) return;
-
-        for (const auto& entry : fs::directory_iterator(dir)) {
-            std::string indent(depth * 2, ' ');
-            std::string name = entry.path().filename().string();
-
-            if (entry.is_directory()) {
-                debug->log(indent + "[D] " + name);
-                dumpDirectory(entry.path(), debug, depth + 1, maxDepth);
-            } else {
-                debug->log(indent + "[F] " + name);
-            }
-        }
-    }
-};
 
 
 // ------------------------- PC Platform Factory -------------------------
@@ -120,7 +65,7 @@ PlatformServices PCPlatformFactory::create() {
 
     services.audio = std::move(audio);
 
-    services.loader = std::make_unique<PCWeaponLoader>();
+    services.loader = std::make_unique<PCTextResourceLoader>(services.debug.get());
     services.assetRoot = "assets/"; // Default asset root
     return services;
 }

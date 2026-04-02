@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "weapon": "chainsaw",
+  "magazineSize": 1,
+  "initialState": "idle",
+
+  "actionSequences": {
+    "idle_sound": [
+      {
+        "type": "play_sound",
+        "sound": "assets/weapons/chainsaw/23_sound_chainsawIdle.wav",
+        "loop": true
+      }
+    ],
+    "working_sound": [
+      {
+        "type": "play_sound",
+        "sound": "assets/weapons/chainsaw/26_sound_chainsawWorking.wav",
+        "loop": true
+      }
+    ],
+    "end_sound": [
+      {
+        "type": "play_sound",
+        "sound": "assets/weapons/chainsaw/24_sound_chainsawEnd.wav"
+      }
+    ]
+  },
+
+  "states": {
+    "idle": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [255, 160, 0],
+            "brightness": 180
+          }
+        },
+        {
+          "type": "run_sequence",
+          "name": "idle_sound"
+        }
+      ],
+      "onExit": [
+        {
+          "type": "stop_sound"
+        }
+      ],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "working",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "working_sound"
+            }
+          ]
+        }
+      ]
+    },
+
+    "working": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [255, 120, 0],
+            "brightness": 220
+          }
+        }
+      ],
+
+      "onExit": [
+        {
+          "type": "stop_sound"
+        }
+      ],
+      "transitions": [
+        {
+          "event": "trigger_released",
+          "target": "ending",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "end_sound"
+            }
+          ]
+        }
+      ]
+    },
+
+    "ending": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [80, 0, 0],
+            "brightness": 30
+          }
+        },
+        {
+          "type": "schedule_event",
+          "event": "return_to_idle",
+          "delayMs": 800
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "working",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "working_sound"
+            }
+          ]
+        },
+        {
+          "event": "return_to_idle",
+          "target": "idle",
+          "actions": []
+        }
+      ]
+    }
+  }
+}

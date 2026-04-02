@@ -14,7 +14,7 @@ public:
 
     virtual bool begin() = 0;
     virtual void update() = 0;
-    virtual void playSound(const std::string& file) = 0;
+    virtual void playSound(const std::string& file, bool loop) = 0;
     virtual void stop() = 0;
 };
 

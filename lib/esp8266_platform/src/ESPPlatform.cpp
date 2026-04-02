@@ -7,11 +7,11 @@
 
 #include "core/debug/IDebug.h"
 #include "core/time/ITime.h"
-#include "core/weapons/IWeaponLoader.h"
 
 #include "platform/esp8266/ESPPlatform.h"
 #include "platform/esp8266/input/ESPInput.h"
 #include "platform/esp8266/audio/ESPAudioBackendFactory.h"
+#include "platform/esp8266/text_resource_loader/ESPTextResourceLoader.h"
 #include "platform/esp8266/time/ESPTime.h"
 
 namespace {
@@ -28,42 +28,6 @@ namespace {
         }
     };
 
-    //
-    // ------------------------- ESP Weapon Loader -------------------------
-    //
-    class ESPWeaponLoader : public IWeaponLoader {
-    protected:
-        std::string loadText(const std::string &path, IDebug *debug) override {
-            if (!SD.exists(path.c_str())) {
-                debug->error("ESPWeaponLoader: file not found: " + path);
-            }
-
-            File file = SD.open(path.c_str(), FILE_READ);
-            if (!file) {
-                debug->error("ESPWeaponLoader: file empty: " + path);
-                return {};
-            }
-
-            const size_t size = file.size();
-            if (size == 0 || size > 20 * 1024) {
-                file.close();
-                return {};
-            }
-
-            std::string text;
-            text.resize(size);
-
-            const size_t bytesRead = file.readBytes(text.data(), size);
-            file.close();
-
-            if (bytesRead != size) {
-                debug->error("ESPWeaponLoader: no bytes read: " + path);
-                return {};
-            }
-
-            return text;
-        }
-    };
 } // anonymous namespace
 
 
@@ -126,7 +90,7 @@ PlatformServices ESPPlatformFactory::create() {
     services.audio = std::move(audio);
 
     // Weapon loader
-    services.loader = std::make_unique<ESPWeaponLoader>();
+    services.loader = std::make_unique<EspSdTextResourceLoader>(services.debug.get());
 
     // Asset root
     services.assetRoot = "/assets/";

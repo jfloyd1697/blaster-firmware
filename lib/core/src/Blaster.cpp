@@ -1,17 +1,23 @@
 #include "core/Blaster.h"
 
+#include <memory>
+#include <cstdlib>
 #include <utility>
 
 #include "core/audio/IAudioEngine.h"
 #include "core/debug/IDebug.h"
 #include "core/input/IInput.h"
-#include "core/weapons/IShootMode.h"
+#include "core/lights/ILights.h"
 #include "core/weapons/ShootContext.h"
-#include "core/weapons/ShootModeFactory.h"
 #include "core/weapons/SoundBank.h"
 #include "core/weapons/WeaponProfile.h"
+#include "core/weapons//WeaponBehaviorController.h"
+#include "core/weapons/WeaponBehaviorLoadHelpers.h"
+#include "weapon_behavior/WeaponBehaviorTypes.h"
 
-Blaster::Blaster(PlatformServices& services,
+using namespace weapon_behavior;
+
+Blaster::Blaster(PlatformServices &services,
                  std::vector<SoundBank> banks)
     : m_services(services),
       m_banks(std::move(banks)) {
@@ -30,8 +36,8 @@ bool Blaster::update() {
     handleReloadInput();
     handleTriggerInput();
 
-    if (m_shootMode) {
-        m_shootMode->update();
+    if (m_behaviorController) {
+        m_behaviorController->update();
     }
 
     return !shouldQuit();
@@ -51,29 +57,31 @@ void Blaster::handleWeaponSelectionInput() {
     }
 }
 
-void Blaster::handleReloadInput() {
-    if (!m_services.input || !m_currentProfile) {
+void Blaster::handleReloadInput() const {
+    if (!m_services.input || !m_behaviorController) {
         return;
     }
 
-    if (!m_services.input->wasReloadPressed()) {
-        return;
+    if (m_services.input->wasReloadPressed()) {
+        m_behaviorController->handleEvent("reload");
     }
-
-    reloadCurrentWeapon();
 }
 
 void Blaster::handleTriggerInput() const {
-    if (!m_services.input || !m_shootMode) {
+    if (!m_services.input || !m_behaviorController) {
         return;
     }
 
     if (m_services.input->wasTriggerPressed()) {
-        m_shootMode->onTriggerPressed();
+        m_behaviorController->handleEvent("trigger_pressed");
     }
 
     if (m_services.input->wasTriggerReleased()) {
-        m_shootMode->onTriggerReleased();
+        m_behaviorController->handleEvent("trigger_released");
+    }
+
+    if (m_services.input->isTriggerHeld()) {
+        m_behaviorController->handleEvent("trigger_held");
     }
 }
 
@@ -82,7 +90,7 @@ void Blaster::selectNextWeapon() {
         return;
     }
 
-    const SoundBank& bank = m_banks[m_currentBankIndex];
+    const SoundBank &bank = m_banks[m_currentBankIndex];
     if (bank.weapons.empty()) {
         return;
     }
@@ -96,15 +104,15 @@ void Blaster::selectPreviousWeapon() {
         return;
     }
 
-    const SoundBank& bank = m_banks[m_currentBankIndex];
+    const SoundBank &bank = m_banks[m_currentBankIndex];
     if (bank.weapons.empty()) {
         return;
     }
 
     m_currentWeaponIndex =
-        (m_currentWeaponIndex == 0)
-            ? (bank.weapons.size() - 1)
-            : (m_currentWeaponIndex - 1);
+            (m_currentWeaponIndex == 0)
+                ? (bank.weapons.size() - 1)
+                : (m_currentWeaponIndex - 1);
 
     equipCurrentWeapon();
 }
@@ -114,14 +122,14 @@ void Blaster::reloadCurrentWeapon() {
         return;
     }
 
-    m_currentAmmo = m_currentProfile->magazineSize;
+    m_currentAmmo = m_behaviorDef->magazineSize;
 
     if (m_services.debug) {
         m_services.debug->log("Reloaded weapon: " + m_currentProfile->name);
     }
 
-    if (m_services.audio && !m_currentProfile->sounds.reload.empty()) {
-        m_services.audio->playSound(m_currentProfile->sounds.reload);
+    if (m_behaviorController) {
+        m_behaviorController->handleEvent("reload_complete");
     }
 }
 
@@ -132,11 +140,34 @@ void Blaster::equipCurrentWeapon() {
         if (m_services.debug) {
             m_services.debug->error("Blaster::equipCurrentWeapon: no weapon available");
         }
-        m_shootMode.reset();
+        m_behaviorDef.reset();
+        m_behaviorController.reset();
         return;
     }
 
-    m_currentAmmo = m_currentProfile->magazineSize;
+    m_currentAmmo = m_behaviorDef->magazineSize;
+
+    if (!m_services.loader) {
+        if (m_services.debug) {
+            m_services.debug->error("Blaster::equipCurrentWeapon: no text loader available");
+        }
+        m_behaviorDef.reset();
+        m_behaviorController.reset();
+        return;
+    }
+
+    try {
+        m_behaviorDef = loadWeaponBehavior(*m_services.loader, m_currentProfile->behaviorPath);
+    } catch (const std::exception &ex) {
+        if (m_services.debug) {
+            m_services.debug->error(
+                "Blaster::equipCurrentWeapon: failed to load behavior for " +
+                m_currentProfile->name + ": " + ex.what());
+        }
+        m_behaviorDef.reset();
+        m_behaviorController.reset();
+        return;
+    }
 
     ShootContext ctx;
     ctx.time = m_services.time.get();
@@ -144,26 +175,79 @@ void Blaster::equipCurrentWeapon() {
     ctx.debug = m_services.debug.get();
     ctx.profile = m_currentProfile;
     ctx.ammo = &m_currentAmmo;
-    ctx.emitShot = [this]() { this->emitShot(); };
-    ctx.flashMuzzle = [this]() { this->flashMuzzle(); };
 
-    m_shootMode = createShootMode(ctx);
+    ctx.emitShot = [this] {
+        emitShot();
+    };
 
-    if (m_shootMode) {
-        m_shootMode->onEquipped();
-    }
+    ctx.flashMuzzle = [this] {
+        flashMuzzle();
+    };
+
+    ctx.playSound = [this](const std::string &path, bool loop) {
+        if (!m_services.audio || path.empty()) {
+            return;
+        }
+        m_services.audio->playSound(path, loop);
+    };
+
+    ctx.playRandomSound = [this](const std::vector<std::string> &sounds, bool loop) {
+        if (!m_services.audio || sounds.empty()) {
+            return;
+        }
+
+        const std::size_t index = static_cast<std::size_t>(std::rand()) % sounds.size();
+        m_services.audio->playSound(sounds[index], loop);
+    };
+
+    ctx.stopSound = [this]() {
+        if (!m_services.audio) {
+            return;
+        }
+        m_services.audio->stop();
+    };
+
+    ctx.setLight = [this](const LightPatternDef &pattern) {
+        if (!m_services.lights) {
+            return;
+        }
+        m_services.lights->setPattern(std::make_shared<LightPatternDef>(pattern));
+    };
+
+    ctx.flashLight = [this](const LightPatternDef &) {
+        if (!m_services.lights) {
+            return;
+        }
+        m_services.lights->flash();
+    };
+
+    ctx.emitBehaviorEvent = [this](const std::string &event) {
+        if (m_behaviorController) {
+            m_behaviorController->handleEvent(event);
+        }
+    };
+
+    m_behaviorController = std::make_unique<WeaponBehaviorController>(
+        *m_behaviorDef,
+        std::move(ctx));
+
+    m_behaviorController->initialize();
 
     if (m_services.debug) {
         m_services.debug->log("Equipped weapon: " + m_currentProfile->name);
     }
 }
 
-const WeaponProfile* Blaster::currentWeapon() const {
+const WeaponProfile *Blaster::currentWeapon() const {
     if (m_banks.empty()) {
         return nullptr;
     }
 
-    const SoundBank& bank = m_banks[m_currentBankIndex];
+    if (m_currentBankIndex >= m_banks.size()) {
+        return nullptr;
+    }
+
+    const SoundBank &bank = m_banks[m_currentBankIndex];
     if (bank.weapons.empty()) {
         return nullptr;
     }
@@ -183,8 +267,7 @@ void Blaster::emitShot() const {
     if (m_services.debug) {
         m_services.debug->log(
             "Shot fired: " + m_currentProfile->name +
-            ", ammo remaining: " + std::to_string(m_currentAmmo)
-        );
+            ", ammo remaining: " + std::to_string(m_currentAmmo));
     }
 }
 

@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "weapon": "mk1_blaster",
+  "initialState": "idle",
+  "actionSequences": {
+    "fire_single": [
+      {
+        "type": "play_sound_random",
+        "sounds": [
+          "assets/audio/weapons/mk1_blaster/fire/shot_01.wav",
+          "assets/audio/weapons/mk1_blaster/fire/shot_02.wav"
+        ]
+      },
+      {
+        "type": "flash_light",
+        "pattern": {
+          "mode": "flash",
+          "color": [255, 180, 80],
+          "brightness": 255,
+          "durationMs": 30,
+          "count": 1
+        }
+      },
+      {
+        "type": "consume_ammo",
+        "amount": 1
+      }
+    ]
+  },
+  "states": {
+    "idle": {
+      "onEnter": [
+        {
+          "type": "play_sound",
+          "sound": "assets/audio/weapons/mk1_blaster/idle/idle_hum.wav",
+          "loop": true
+        },
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [40, 120, 255],
+            "brightness": 100
+          }
+        }
+      ],
+      "onExit": [
+        {
+          "type": "stop_sound",
+          "sound": "assets/audio/weapons/mk1_blaster/idle/idle_hum.wav"
+        }
+      ],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "idle",
+          "actions": [
+            { "type": "run_sequence", "name": "fire_single" }
+          ]
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": []
+        }
+      ]
+    },
+    "reloading": {
+      "onEnter": [
+        {
+          "type": "play_sound",
+          "sound": "assets/audio/weapons/mk1_blaster/reload/reload.wav"
+        },
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "pulse",
+            "color": [80, 180, 255],
+            "brightness": 180,
+            "intervalMs": 180
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "reload_complete",
+          "target": "idle",
+          "actions": []
+        }
+      ]
+    }
+  }
+}

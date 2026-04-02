@@ -13,4 +13,4 @@ public:
     virtual void onTriggerReleased() = 0;
 };
 
-#endif //BLASTER_FIRMWARE_ISHOOTMODE_H
+#endif // BLASTER_FIRMWARE_ISHOOTMODE_H

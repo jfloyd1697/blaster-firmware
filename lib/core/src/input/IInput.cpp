@@ -14,7 +14,7 @@ const IInput::ButtonState& IInput::stateFor(const ButtonID button) const {
     return buttonStates_[toIndex(button)];
 }
 
-const IInput::ButtonConfig& IInput::configFor(const ButtonID button) const {
+const IInput::ButtonConfig& IInput::configFor(const ButtonID button) {
     return buttonConfigs_[toIndex(button)];
 }
 
@@ -76,7 +76,7 @@ void IInput::updateButton(const ButtonID button, const std::uint32_t now) {
     }
 }
 
-bool IInput::isTriggerPressed() const {
+bool IInput::isTriggerHeld() const {
     return stateFor(ButtonID::Trigger).stablePressed;
 }
 

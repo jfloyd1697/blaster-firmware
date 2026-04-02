@@ -41,4 +41,4 @@ def main(input_folder, output_folder=None):
     print("All MP3s converted to WAV!")
 
 if __name__ == '__main__':
-    main(input_folder="..\\assets\\audio\\gun")
+    main(input_folder="mp3_files")

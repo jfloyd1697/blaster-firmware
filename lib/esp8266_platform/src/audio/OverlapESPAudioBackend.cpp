@@ -93,7 +93,7 @@ void OverlapESPAudioBackend::update() {
     }
 }
 
-void OverlapESPAudioBackend::playSound(const std::string& file) {
+void OverlapESPAudioBackend::playSound(const std::string& file, const bool loop) {
     if (m_mixer == nullptr || m_out == nullptr) {
         if (m_debug != nullptr) {
             m_debug->error("OverlapESPAudioBackend: output not initialized");

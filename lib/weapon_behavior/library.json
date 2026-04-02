@@ -1,0 +1,8 @@
+{
+  "name": "weapon_behavior",
+  "version": "1.0.0",
+  "build": {
+    "includeDir": "include",
+    "srcDir": "src"
+  }
+}

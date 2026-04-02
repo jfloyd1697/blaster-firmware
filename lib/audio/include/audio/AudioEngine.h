@@ -13,14 +13,21 @@ class IAudioBackend;
 class AudioEngine : public IAudioEngine {
 public:
     explicit AudioEngine(std::unique_ptr<IAudioBackend> backend);
+
     ~AudioEngine() override;
 
     bool begin() override;
+
     void update() override;
-    void playSound(const std::string& file) override;
+
+    void playSound(const std::string &file, bool loop) override;
+
     void stop() override;
 
 private:
     std::unique_ptr<IAudioBackend> m_backend;
+    std::string m_currentFile;
+    bool m_loop = false;
+    bool m_isPlaying = false;
 };
 #endif //BLASTER_FIRMWARE_AUDIOENGINE_H

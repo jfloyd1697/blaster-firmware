@@ -14,7 +14,7 @@ public:
 
     ESPInput(const PinConfig &pins, ITime *time);
 
-    void begin();
+    void begin() const;
 
 protected:
     [[nodiscard]] bool readRawButton(ButtonID button) const override;

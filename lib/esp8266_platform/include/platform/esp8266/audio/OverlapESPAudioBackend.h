@@ -7,42 +7,43 @@
 
 #include "audio/IAudioBackend.h"
 
-class IDebug;
+struct IDebug;
+
 class AudioFileSourceSD;
 class AudioGeneratorWAV;
+class AudioOutputMixerStub;
 class AudioOutputI2S;
 class AudioOutputMixer;
-class AudioOutputMixerStub;
 
 class OverlapESPAudioBackend : public IAudioBackend {
 public:
     static constexpr std::size_t kAbsoluteMaxVoices = 8;
 
     explicit OverlapESPAudioBackend(std::size_t maxVoices,
-                                    IDebug* debug = nullptr);
+                                    IDebug *debug = nullptr);
     ~OverlapESPAudioBackend() override;
 
     bool begin() override;
     void update() override;
-    void playSound(const std::string& file) override;
+    void playSound(const std::string &file) override;
     void stop() override;
 
-private:
+protected:
     struct Voice {
-        AudioFileSourceSD* file = nullptr;
-        AudioGeneratorWAV* wav = nullptr;
-        AudioOutputMixerStub* stub = nullptr;
+        AudioFileSourceSD *file = nullptr;
+        AudioGeneratorWAV *wav = nullptr;
+        AudioOutputMixerStub *stub = nullptr;
         bool active = false;
     };
 
-    Voice* findFreeVoice();
-    Voice* stealOldestVoice();
-    void stopVoice(Voice& voice);
+    Voice *findFreeVoice();
+    Voice *stealOldestVoice();
+    void stopVoice(Voice &voice);
 
 private:
-    IDebug* m_debug = nullptr;
-    AudioOutputI2S* m_out = nullptr;
-    AudioOutputMixer* m_mixer = nullptr;
+    IDebug *m_debug = nullptr;
+    AudioOutputI2S *m_out = nullptr;
+    AudioOutputMixer *m_mixer = nullptr;
 
     std::array<Voice, kAbsoluteMaxVoices> m_voices{};
     std::array<uint32_t, kAbsoluteMaxVoices> m_voiceAge{};

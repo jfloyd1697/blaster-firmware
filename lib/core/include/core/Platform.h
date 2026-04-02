@@ -17,13 +17,13 @@
 
 
 struct PlatformServices {
-    std::unique_ptr<IAudioEngine> audio;
-    std::unique_ptr<IInput> input;
-    std::unique_ptr<ITime> time;
-    std::unique_ptr<IDebug> debug;
-    std::unique_ptr<Lights::ILights> lights;
-    std::unique_ptr<IWeaponLoader> loader;
-    std::string assetRoot;
+    std::unique_ptr<IAudioEngine> audio = nullptr;
+    std::unique_ptr<IInput> input = nullptr;
+    std::unique_ptr<ITime> time = nullptr;
+    std::unique_ptr<IDebug> debug = nullptr;
+    std::unique_ptr<ILights> lights = nullptr;
+    std::unique_ptr<IWeaponLoader> loader = nullptr;
+    std::string assetRoot = "./";
 
     PlatformServices() = default;
 

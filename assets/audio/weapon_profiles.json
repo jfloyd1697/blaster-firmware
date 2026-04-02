@@ -1,0 +1,361 @@
+{
+  "banks": [
+    {
+      "name": "blaster",
+      "weapons": [
+        {
+          "name": "Atst-Chinguns-Online-Audio-Converter",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/atst-chinguns-online-audio-converter.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Battle-Droid-Blaster",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/battle-droid-blaster.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Blast-2",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/blast-2.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Blast-3",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/blast-3.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Blaster-Ligero",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/blaster-ligero.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Blasterpistol1",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/blasterpistol1.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Boba-Fetts-Blaster",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/boba-fetts-blaster.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Clone-Blaster",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/clone-blaster.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Clone-Commando-Blaster",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/clone-commando-blaster.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Droideka-Blaster",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/droideka-blaster.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "E-11",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/e-11.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Fleet-Trooper-Blaster",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/fleet-trooper-blaster.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Jango-Fett-Blaster-1",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/jango-fett-blaster-1.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Lego-Star-Wars-Droid-Trifighter-Blaster1",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/lego-star-wars-droid-trifighter-blaster1.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Lego-Star-Wars-Droid-Trifighter-Blaster2",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/lego-star-wars-droid-trifighter-blaster2.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Lego-Star-Wars-Leia-Blaster",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/lego-star-wars-leia-blaster.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Lego-Star-Wars-Tie-Fighter-Blaster2",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/lego-star-wars-tie-fighter-blaster2.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Lego-Star-Wars-Y-Wing-Blaster",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/lego-star-wars-y-wing-blaster.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Naboo-Royal-Blaster",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/naboo-royal-blaster.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Probe-Droid-Blaster",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/probe-droid-blaster.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Sandtrooper-Blaster",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/sandtrooper-blaster.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Scout-Blaster",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/scout-blaster.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Stormtrooper-Blaster-2 Dofyccb",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/stormtrooper-blaster-2_DofYccb.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Tie-Blaster-Cannon",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/tie-blaster-cannon.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Tie-Fighter-Fire-1",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/tie-fighter-fire-1.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "W-Dl-44-Blaster-Pistol",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/w-dl-44-blaster-pistol.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "W-E-11-Blaster-Rifle",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/w-e-11-blaster-rifle.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Walker-Blaster",
+          "sounds": {
+            "shot": "assets/audio/weapons/blaster/walker-blaster.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        }
+      ]
+    },
+    {
+      "name": "fart",
+      "weapons": [
+        {
+          "name": "Basic Fart",
+          "sounds": {
+            "shot": "assets/audio/weapons/fart/basic_fart.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Dry-Fart",
+          "sounds": {
+            "shot": "assets/audio/weapons/fart/dry-fart.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Fart-With-Extra-Reverb",
+          "sounds": {
+            "shot": "assets/audio/weapons/fart/fart-with-extra-reverb.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Farth-Vader",
+          "sounds": {
+            "shot": "assets/audio/weapons/fart/farth-vader.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Nanofartv2",
+          "sounds": {
+            "shot": "assets/audio/weapons/fart/nanofartv2.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Nuclear-Fart-1",
+          "sounds": {
+            "shot": "assets/audio/weapons/fart/nuclear-fart-1.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Wet-Fart-Meme",
+          "sounds": {
+            "shot": "assets/audio/weapons/fart/wet-fart-meme.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Wet-Fart 1",
+          "sounds": {
+            "shot": "assets/audio/weapons/fart/wet-fart_1.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        }
+      ]
+    },
+    {
+      "name": "star_wars_sfx",
+      "weapons": [
+        {
+          "name": "Lego-Die",
+          "sounds": {
+            "shot": "assets/audio/weapons/star_wars_sfx/lego-die.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        },
+        {
+          "name": "Speeder Whoop",
+          "sounds": {
+            "shot": "assets/audio/weapons/star_wars_sfx/speeder_whoop.wav"
+          },
+          "shootMode": {
+            "type": "single"
+          }
+        }
+      ]
+    }
+  ]
+}

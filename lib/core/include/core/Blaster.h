@@ -1,40 +1,45 @@
-//
-// Created by user on 3/26/2026.
-//
-
 #ifndef BLASTER_FIRMWARE_BLASTER_H
 #define BLASTER_FIRMWARE_BLASTER_H
 
 #pragma once
 
+#include <cstddef>
+#include <memory>
 #include <vector>
 
-#include "core/Platform.h"
-#include "core/weapons/WeaponProfile.h"
+#include "Platform.h"
+#include "weapons/SoundBank.h"
+#include "weapons/IShootMode.h"
+#include "weapons/WeaponProfile.h"
+
 
 class Blaster {
 public:
-    Blaster(PlatformServices& services, const std::vector<SoundBank>& soundBanks);
+    Blaster(PlatformServices& services,
+            std::vector<SoundBank> banks);
+    ~Blaster() = default;
 
     bool update();
 
-    void fire();
-    void reload();
+protected:
+    void handleWeaponSelectionInput();
+    void handleReloadInput();
+    void handleTriggerInput() const;
 
-    void nextWeapon();
-    void prevWeapon();
+    void selectNextWeapon();
+    void selectPreviousWeapon();
+    void reloadCurrentWeapon();
 
-    void nextBank();
-    void prevBank();
+    void equipCurrentWeapon();
+    void emitShot() const;
+    void flashMuzzle() const;
 
-    const SoundBank& currentBank() const;
-    const WeaponProfile& currentWeapon() const;
-    const std::vector<WeaponProfile>& weapons() const;
+    [[nodiscard]] bool shouldQuit() const;
+
+    [[nodiscard]] const WeaponProfile* currentWeapon() const;
 
 private:
-    bool hasInfiniteAmmo() const;
-    int magazineCapacity() const;
-    void resetAmmoForCurrentWeapon();
+    std::unique_ptr<IShootMode> m_shootMode;
 
     PlatformServices& m_services;
     std::vector<SoundBank> m_banks;
@@ -42,8 +47,8 @@ private:
     std::size_t m_currentBankIndex = 0;
     std::size_t m_currentWeaponIndex = 0;
 
-    // For finite-ammo weapons only.
-    // For infinite-ammo weapons, this value is ignored.
-    int m_roundsRemaining = 0;
+    const WeaponProfile* m_currentProfile = nullptr;
+
+    int m_currentAmmo = 0;
 };
 #endif //BLASTER_FIRMWARE_BLASTER_H

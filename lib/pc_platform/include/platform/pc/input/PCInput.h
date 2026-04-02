@@ -3,19 +3,17 @@
 
 #pragma once
 
-#include <chrono>
-
 #include "core/input/IInput.h"
-#include "core/time/ITime.h"
+
+class ITime;
 
 class PCInput final : public IInput {
 public:
     explicit PCInput(ITime* time);
 
 protected:
-    bool readRawButton(ButtonID button) const override;
-
-    static bool isKeyDown(int vk);
+    [[nodiscard]] bool readRawButton(ButtonID button) const override;
 };
+
 
 #endif // BLASTER_FIRMWARE_PCINPUT_H

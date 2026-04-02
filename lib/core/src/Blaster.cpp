@@ -1,230 +1,205 @@
-
-#include <string>
-
 #include "core/Blaster.h"
-#include "audio/IAudioEngine.h"
 
-namespace {
-    const WeaponProfile& invalidWeapon() {
-        static const WeaponProfile weapon{
-            .name = "invalid",
-            .file = "",
-            .category = "",
-            .numRounds = 0,
-            .boltLockFile = "",
-            .emptyFile = "",
-            .reloadFile = ""
-        };
-        return weapon;
-    }
+#include <utility>
 
-    const SoundBank& invalidBank() {
-        static const SoundBank bank{
-            .name = "invalid",
-            .weapons = {}
-        };
-        return bank;
-    }
-}
+#include "core/audio/IAudioEngine.h"
+#include "core/debug/IDebug.h"
+#include "core/input/IInput.h"
+#include "core/weapons/IShootMode.h"
+#include "core/weapons/ShootContext.h"
+#include "core/weapons/ShootModeFactory.h"
+#include "core/weapons/SoundBank.h"
+#include "core/weapons/WeaponProfile.h"
 
-Blaster::Blaster(PlatformServices& services, const std::vector<SoundBank>& soundBanks)
-    : m_services(services), m_banks(soundBanks) {
-    resetAmmoForCurrentWeapon();
+Blaster::Blaster(PlatformServices& services,
+                 std::vector<SoundBank> banks)
+    : m_services(services),
+      m_banks(std::move(banks)) {
+    equipCurrentWeapon();
 }
 
 bool Blaster::update() {
-    auto& input = m_services.input;
-
-    if (input->wasQuitPressed()) {
+    if (m_banks.empty()) {
+        if (m_services.debug) {
+            m_services.debug->error("Blaster::update: no sound banks loaded");
+        }
         return false;
     }
 
-    if (input->wasReloadPressed()) {
-        reload();
-    } else if (input->wasTriggerPressed()) {
-        fire();
-    } else if (input->wasNextShortPressed()) {
-        nextWeapon();
-    } else if (input->wasPrevShortPressed()) {
-        prevWeapon();
-    } else if (input->wasNextLongPressed()) {
-        nextBank();
-    } else if (input->wasPrevLongPressed()) {
-        prevBank();
+    handleWeaponSelectionInput();
+    handleReloadInput();
+    handleTriggerInput();
+
+    if (m_shootMode) {
+        m_shootMode->update();
     }
 
-    return true;
+    return !shouldQuit();
 }
 
-void Blaster::fire() {
-    m_services.debug->log("Blaster::fire()");
-
-    const auto& weapon = currentWeapon();
-    if (weapon.file.empty()) {
-        m_services.debug->error("Blaster: no valid weapon selected");
+void Blaster::handleWeaponSelectionInput() {
+    if (!m_services.input) {
         return;
     }
 
-    // Empty-magazine behavior for finite-ammo weapons.
-    if (!hasInfiniteAmmo() && m_roundsRemaining <= 0) {
-        if (!weapon.emptyFile.empty()) {
-            m_services.audio->playSound(m_services.assetRoot + weapon.emptyFile);
-        } else {
-            m_services.debug->log("Blaster: empty trigger pull");
-        }
-        return;
+    if (m_services.input->wasNextShortPressed()) {
+        selectNextWeapon();
     }
 
-    // Fire the main shot.
-    m_services.audio->playSound(m_services.assetRoot + weapon.file);
-
-    // Infinite ammo: nothing else to track.
-    if (hasInfiniteAmmo()) {
-        return;
-    }
-
-    --m_roundsRemaining;
-    m_services.debug->log("Blaster: rounds remaining = " + std::to_string(m_roundsRemaining));
-
-    // Last round fired: trigger bolt lock sound immediately.
-    // Current audio engine may interrupt rather than overlap.
-    if (m_roundsRemaining == 0 && !weapon.boltLockFile.empty()) {
-        m_services.audio->playSound(m_services.assetRoot + weapon.boltLockFile);
+    if (m_services.input->wasPrevShortPressed()) {
+        selectPreviousWeapon();
     }
 }
 
-void Blaster::reload() {
-    m_services.debug->log("Blaster::reload()");
-
-    const auto& weapon = currentWeapon();
-    if (weapon.file.empty()) {
-        m_services.debug->error("Blaster: no valid weapon selected for reload");
+void Blaster::handleReloadInput() {
+    if (!m_services.input || !m_currentProfile) {
         return;
     }
 
-    if (hasInfiniteAmmo()) {
-        m_services.debug->log("Blaster: reload ignored for infinite-ammo weapon");
+    if (!m_services.input->wasReloadPressed()) {
         return;
     }
 
-    m_roundsRemaining = magazineCapacity();
-    m_services.debug->log("Blaster: reloaded to " + std::to_string(m_roundsRemaining) + " rounds");
+    reloadCurrentWeapon();
+}
 
-    if (!weapon.reloadFile.empty()) {
-        m_services.audio->playSound(m_services.assetRoot + weapon.reloadFile);
+void Blaster::handleTriggerInput() const {
+    if (!m_services.input || !m_shootMode) {
+        return;
+    }
+
+    if (m_services.input->wasTriggerPressed()) {
+        m_shootMode->onTriggerPressed();
+    }
+
+    if (m_services.input->wasTriggerReleased()) {
+        m_shootMode->onTriggerReleased();
     }
 }
 
-void Blaster::nextWeapon() {
-    m_services.debug->log("Blaster::nextWeapon()");
-
-    const auto& currentWeapons = weapons();
-    if (currentWeapons.empty()) {
-        m_services.debug->error("Blaster: no weapons in current bank");
+void Blaster::selectNextWeapon() {
+    if (m_banks.empty()) {
         return;
     }
 
-    m_currentWeaponIndex = (m_currentWeaponIndex + 1) % currentWeapons.size();
-    resetAmmoForCurrentWeapon();
+    const SoundBank& bank = m_banks[m_currentBankIndex];
+    if (bank.weapons.empty()) {
+        return;
+    }
 
-    m_services.debug->log("Blaster: switched to weapon " + currentWeapons[m_currentWeaponIndex].name);
+    m_currentWeaponIndex = (m_currentWeaponIndex + 1) % bank.weapons.size();
+    equipCurrentWeapon();
 }
 
-void Blaster::prevWeapon() {
-    m_services.debug->log("Blaster::prevWeapon()");
+void Blaster::selectPreviousWeapon() {
+    if (m_banks.empty()) {
+        return;
+    }
 
-    const auto& currentWeapons = weapons();
-    if (currentWeapons.empty()) {
-        m_services.debug->error("Blaster: no weapons in current bank");
+    const SoundBank& bank = m_banks[m_currentBankIndex];
+    if (bank.weapons.empty()) {
         return;
     }
 
     m_currentWeaponIndex =
-        (m_currentWeaponIndex == 0) ? (currentWeapons.size() - 1) : (m_currentWeaponIndex - 1);
+        (m_currentWeaponIndex == 0)
+            ? (bank.weapons.size() - 1)
+            : (m_currentWeaponIndex - 1);
 
-    resetAmmoForCurrentWeapon();
-
-    m_services.debug->log("Blaster: switched to weapon " + currentWeapons[m_currentWeaponIndex].name);
+    equipCurrentWeapon();
 }
 
-void Blaster::nextBank() {
-    m_services.debug->log("Blaster::nextBank()");
-
-    if (m_banks.empty()) {
-        m_services.debug->error("Blaster: no sound banks configured");
+void Blaster::reloadCurrentWeapon() {
+    if (!m_currentProfile) {
         return;
     }
 
-    m_currentBankIndex = (m_currentBankIndex + 1) % m_banks.size();
-    m_currentWeaponIndex = 0;
-    resetAmmoForCurrentWeapon();
+    m_currentAmmo = m_currentProfile->magazineSize;
 
-    m_services.debug->log("Blaster: switched to bank " + currentBank().name);
+    if (m_services.debug) {
+        m_services.debug->log("Reloaded weapon: " + m_currentProfile->name);
+    }
+
+    if (m_services.audio && !m_currentProfile->sounds.reload.empty()) {
+        m_services.audio->playSound(m_currentProfile->sounds.reload);
+    }
 }
 
-void Blaster::prevBank() {
-    m_services.debug->log("Blaster::prevBank()");
+void Blaster::equipCurrentWeapon() {
+    m_currentProfile = currentWeapon();
 
-    if (m_banks.empty()) {
-        m_services.debug->error("Blaster: no sound banks configured");
+    if (!m_currentProfile) {
+        if (m_services.debug) {
+            m_services.debug->error("Blaster::equipCurrentWeapon: no weapon available");
+        }
+        m_shootMode.reset();
         return;
     }
 
-    m_currentBankIndex =
-        (m_currentBankIndex == 0) ? (m_banks.size() - 1) : (m_currentBankIndex - 1);
-    m_currentWeaponIndex = 0;
-    resetAmmoForCurrentWeapon();
+    m_currentAmmo = m_currentProfile->magazineSize;
 
-    m_services.debug->log("Blaster: switched to bank " + currentBank().name);
+    ShootContext ctx;
+    ctx.time = m_services.time.get();
+    ctx.audio = m_services.audio.get();
+    ctx.debug = m_services.debug.get();
+    ctx.profile = m_currentProfile;
+    ctx.ammo = &m_currentAmmo;
+    ctx.emitShot = [this]() { this->emitShot(); };
+    ctx.flashMuzzle = [this]() { this->flashMuzzle(); };
+
+    m_shootMode = createShootMode(ctx);
+
+    if (m_shootMode) {
+        m_shootMode->onEquipped();
+    }
+
+    if (m_services.debug) {
+        m_services.debug->log("Equipped weapon: " + m_currentProfile->name);
+    }
 }
 
-const SoundBank& Blaster::currentBank() const {
+const WeaponProfile* Blaster::currentWeapon() const {
     if (m_banks.empty()) {
-        m_services.debug->error("Blaster::currentBank(): no sound banks configured");
-        return invalidBank();
+        return nullptr;
     }
 
-    if (m_currentBankIndex >= m_banks.size()) {
-        m_services.debug->error("Blaster::currentBank(): bank index out of range");
-        return m_banks.front();
+    const SoundBank& bank = m_banks[m_currentBankIndex];
+    if (bank.weapons.empty()) {
+        return nullptr;
     }
 
-    return m_banks[m_currentBankIndex];
-}
-
-const std::vector<WeaponProfile>& Blaster::weapons() const {
-    return currentBank().weapons;
-}
-
-const WeaponProfile& Blaster::currentWeapon() const {
-    const auto& currentWeapons = weapons();
-
-    if (currentWeapons.empty()) {
-        m_services.debug->error("Blaster::currentWeapon(): no weapons configured");
-        return invalidWeapon();
+    if (m_currentWeaponIndex >= bank.weapons.size()) {
+        return nullptr;
     }
 
-    if (m_currentWeaponIndex >= currentWeapons.size()) {
-        m_services.debug->error("Blaster::currentWeapon(): weapon index out of range");
-        return currentWeapons.front();
+    return &bank.weapons[m_currentWeaponIndex];
+}
+
+void Blaster::emitShot() const {
+    if (!m_currentProfile) {
+        return;
     }
 
-    return currentWeapons[m_currentWeaponIndex];
-}
-
-bool Blaster::hasInfiniteAmmo() const {
-    return currentWeapon().numRounds <= 0;
-}
-
-int Blaster::magazineCapacity() const {
-    const int rounds = currentWeapon().numRounds;
-    return (rounds > 0) ? rounds : 0;
-}
-
-void Blaster::resetAmmoForCurrentWeapon() {
-    if (hasInfiniteAmmo()) {
-        m_roundsRemaining = 0;
-    } else {
-        m_roundsRemaining = magazineCapacity();
+    if (m_services.debug) {
+        m_services.debug->log(
+            "Shot fired: " + m_currentProfile->name +
+            ", ammo remaining: " + std::to_string(m_currentAmmo)
+        );
     }
+}
+
+void Blaster::flashMuzzle() const {
+    if (!m_services.lights) {
+        return;
+    }
+
+    m_services.lights->flash();
+}
+
+bool Blaster::shouldQuit() const {
+    if (!m_services.input) {
+        return false;
+    }
+
+    return m_services.input->wasQuitPressed();
 }

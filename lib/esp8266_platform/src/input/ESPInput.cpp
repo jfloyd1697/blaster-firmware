@@ -5,12 +5,12 @@
 #include "core/time/ITime.h"
 
 
-ESPInput::ESPInput(const PinConfig& pins, ITime* time)
+ESPInput::ESPInput(const PinConfig &pins, ITime *time)
     : IInput(time),
       m_pins(pins) {
 }
 
-void ESPInput::begin() {
+void ESPInput::begin() const {
     if (m_pins.trigger >= 0) {
         pinMode(m_pins.trigger, INPUT_PULLDOWN_16);
     }
@@ -20,39 +20,31 @@ void ESPInput::begin() {
     }
 }
 
-bool ESPInput::readRawButton(ButtonID button) const {
-    switch (button) {
-        case ButtonID::Trigger:
-            return (m_pins.trigger >= 0) &&
-                   (digitalRead(m_pins.trigger) == HIGH);
+bool ESPInput::readRawButton(const ButtonID button) const {
+    if (button == ButtonID::Trigger) {
+        return (m_pins.trigger >= 0) && (digitalRead(m_pins.trigger) == HIGH);
+    }
 
-        case ButtonID::Quit:
-            return (m_pins.quit >= 0) &&
-                   (digitalRead(m_pins.quit) == LOW);
+    if (button == ButtonID::Quit) {
+        return (m_pins.quit >= 0) && (digitalRead(m_pins.quit) == LOW);
+    }
 
-        case ButtonID::NextWeapon:
-        case ButtonID::PreviousWeapon:
-        case ButtonID::Reload: {
-            if (m_pins.ladder < 0) {
-                return false;
-            }
+    if (m_pins.ladder < 0) {
+        return false;
+    }5
 
-            const int raw = readLadderRaw();
+    const int raw = readLadderRaw();
 
-            if (button == ButtonID::NextWeapon) {
-                return raw < 100;
-            }
+    if (button == ButtonID::NextWeapon) {
+        return raw < 100;
+    }
 
-            if (button == ButtonID::PreviousWeapon) {
-                return raw >= 100 && raw < 200;
-            }
+    if (button == ButtonID::PreviousWeapon) {
+        return raw >= 100 && raw < 200;
+    }
 
-            if (button == ButtonID::Reload) {
-                return raw >= 200 && raw < 800;
-            }
-
-            return false;
-        }
+    if (button == ButtonID::Reload) {
+        return raw >= 200 && raw < 800;
     }
 
     return false;

@@ -6,7 +6,7 @@
 #include <memory>
 
 class IAudioEngine;
-class IDebug;
+struct IDebug;
 class ITime;
 
 enum class ESPAudioBackendType {

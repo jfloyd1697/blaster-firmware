@@ -1,7 +1,6 @@
-#include "audio/AudioEngine.h"
-
 #include <utility>
 
+#include "audio/AudioEngine.h"
 #include "audio/IAudioBackend.h"
 
 AudioEngine::AudioEngine(std::unique_ptr<IAudioBackend> backend)
@@ -20,11 +19,12 @@ void AudioEngine::update() {
     }
 }
 
-void AudioEngine::playSound(const std::string& file) {
+void AudioEngine::playSound(const std::string &file) {
     if (m_backend != nullptr) {
         m_backend->playSound(file);
     }
 }
+
 
 void AudioEngine::stop() {
     if (m_backend != nullptr) {

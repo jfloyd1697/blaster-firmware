@@ -1,7 +1,8 @@
+#include "platform/pc/input/PCInput.h"
+
 #include <windows.h>
 
-#include "platform/pc/input/PCInput.h"
-#include "core/time/ITime.h"
+#include "core/input/IInput.h"
 
 PCInput::PCInput(ITime* time)
     : IInput(time) {
@@ -10,24 +11,21 @@ PCInput::PCInput(ITime* time)
 bool PCInput::readRawButton(const ButtonID button) const {
     switch (button) {
         case ButtonID::Trigger:
-            return isKeyDown(VK_SPACE);
+            return ((GetAsyncKeyState(VK_SPACE) | GetAsyncKeyState(VK_RETURN)) & 0x8000) != 0;
 
         case ButtonID::NextWeapon:
-            return isKeyDown(VK_RIGHT);
+            return ((GetAsyncKeyState(VK_RIGHT) | GetAsyncKeyState('E')) & 0x8000) != 0;
 
         case ButtonID::PreviousWeapon:
-            return isKeyDown(VK_LEFT);
+            return ((GetAsyncKeyState(VK_LEFT) | GetAsyncKeyState('Q')) & 0x8000) != 0;
 
         case ButtonID::Reload:
-            return isKeyDown('R');
+            return (GetAsyncKeyState('R') & 0x8000) != 0;
 
         case ButtonID::Quit:
-            return isKeyDown(VK_ESCAPE);
+            return (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0;
     }
 
     return false;
 }
 
-bool PCInput::isKeyDown(const int vk) {
-    return (GetAsyncKeyState(vk) & 0x8000) != 0;
-}

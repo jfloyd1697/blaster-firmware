@@ -9,18 +9,18 @@
 
 #include <string>
 #include <vector>
-#include "WeaponProfile.h"
+
+#include "core/debug/IDebug.h"
+#include "core/weapons/SoundBank.h"
 
 class IWeaponLoader {
 public:
     virtual ~IWeaponLoader() = default;
-    std::vector<SoundBank> loadSoundBanks(const std::string &jsonFilePath);
+
+    std::vector<SoundBank> loadSoundBanks(const std::string &jsonFilePath, IDebug *debug);
 
 protected:
-    virtual std::string loadText(const std::string& path) = 0;
-
-    static std::vector<SoundBank> parseSoundBanksJson(const std::string &jsonText);
-
+    virtual std::string loadText(const std::string &path, IDebug *debug) = 0;
 };
 
 #endif //BLASTER_WEAPONJSONLOADER_H

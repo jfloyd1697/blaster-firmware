@@ -1,21 +1,23 @@
-file(GLOB_RECURSE PC_SOURCES CONFIGURE_DEPENDS
+file(GLOB_RECURSE PC_PLATFORM_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
 
-add_library(pc_platform ${PC_SOURCES})
+add_library(pc_platform ${PC_PLATFORM_SOURCES})
 
 target_include_directories(pc_platform
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/include
 )
 
 target_link_libraries(pc_platform
         PUBLIC
         core
         audio
-        lights
 )
+
+if (WIN32)
+    target_link_libraries(pc_platform PUBLIC winmm)
+endif()
 
 target_compile_definitions(pc_platform
         PUBLIC

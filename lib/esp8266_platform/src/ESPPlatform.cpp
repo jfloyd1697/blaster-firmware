@@ -9,9 +9,10 @@
 #include "core/time/ITime.h"
 #include "core/weapons/IWeaponLoader.h"
 
-#include "ESPPlatform.h"
-#include "input/ESPInput.h"
-#include "../include/audio/ESPAudioBackendFactory.h"
+#include "platform/esp8266/ESPPlatform.h"
+#include "platform/esp8266/input/ESPInput.h"
+#include "platform/esp8266/audio/ESPAudioBackendFactory.h"
+#include "platform/esp8266/time/ESPTime.h"
 
 namespace {
     //
@@ -28,22 +29,18 @@ namespace {
     };
 
     //
-    // ------------------------- ESP Time -------------------------
-    //
-    struct ESPTime : public ITime {
-        uint64_t millis() const override {
-            return ::millis();
-        }
-    };
-
-    //
     // ------------------------- ESP Weapon Loader -------------------------
     //
     class ESPWeaponLoader : public IWeaponLoader {
     protected:
-        std::string loadText(const std::string &path) override {
+        std::string loadText(const std::string &path, IDebug *debug) override {
+            if (!SD.exists(path.c_str())) {
+                debug->error("ESPWeaponLoader: file not found: " + path);
+            }
+
             File file = SD.open(path.c_str(), FILE_READ);
             if (!file) {
+                debug->error("ESPWeaponLoader: file empty: " + path);
                 return {};
             }
 
@@ -60,6 +57,7 @@ namespace {
             file.close();
 
             if (bytesRead != size) {
+                debug->error("ESPWeaponLoader: no bytes read: " + path);
                 return {};
             }
 
@@ -101,14 +99,14 @@ PlatformServices ESPPlatformFactory::create() {
     // SPI + SD
     SPI.begin();
 
-    const int sdCsPin = D1;
-    const bool sdOk = SD.begin(sdCsPin);
+    constexpr int sdCsPin = D1;
+    bool sdOk = SD.begin(sdCsPin);
 
-    if (!sdOk) {
-        services.debug->error("ESPPlatform: SD init FAILED");
-    } else {
-        services.debug->log("ESPPlatform: SD init OK");
-    }
+    // if (sdOk) {
+        // services.debug->log("ESPPlatform: SD init FAILED");
+    // } else {
+        // services.debug->log("ESPPlatform: SD init OK");
+    // }
 
     // Audio
     auto audio = createESPAudioEngine(

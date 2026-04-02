@@ -4,7 +4,7 @@
 
 #include "audio/IAudioBackend.h"
 
-class IDebug;
+struct IDebug;
 class AudioFileSourceSD;
 class AudioGeneratorWAV;
 class AudioOutputI2S;

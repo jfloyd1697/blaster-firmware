@@ -1,0 +1,10 @@
+{
+  "name": "pc_platform",
+  "version": "1.0.0",
+  "description": "PC platform layer for blaster firmware",
+  "keywords": ["pc", "audio", "platform"],
+  "build": {
+    "includeDir": "include",
+    "srcDir": "src"
+  }
+}

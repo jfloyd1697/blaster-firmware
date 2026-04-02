@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <cstdint>
 #include <string>
 
 #include "audio/IAudioBackend.h"
@@ -29,7 +28,7 @@ public:
     void playSound(const std::string& file) override;
     void stop() override;
 
-private:
+protected:
     struct Voice {
         AudioFileSourceSD* file = nullptr;
         AudioGeneratorWAV* wav = nullptr;

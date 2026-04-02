@@ -6,7 +6,7 @@
 #include <memory>
 #include <string>
 
-#include "../../../core/audio/IAudioEngine.h"
+#include "core/audio/IAudioEngine.h"
 
 class IAudioBackend;
 
@@ -23,5 +23,4 @@ public:
 private:
     std::unique_ptr<IAudioBackend> m_backend;
 };
-
 #endif //BLASTER_FIRMWARE_AUDIOENGINE_H

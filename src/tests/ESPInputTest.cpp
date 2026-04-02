@@ -1,13 +1,18 @@
 #include <Arduino.h>
 
-#include "../../../../lib/esp8266_platform/include/input/ESPInput.h"
+#include "platform/esp8266/input/ESPInput.h"
+#include "platform/esp8266/time/ESPTime.h"
 
 namespace {
-    ESPInput input(ESPInput::PinConfig{
+    auto esp_time = ESPTime();
+    auto input = ESPInput(ESPInput::PinConfig{
         .trigger = D0,
         .ladder = A0,
         .quit = -1
-    });
+    },
+        &esp_time
+    );
+
 }
 
 void setup() {
@@ -26,7 +31,6 @@ void setup() {
     Serial.println();
 
     input.begin();
-    input.setLadderThresholds(100, 300, 800);
 }
 
 void loop() {

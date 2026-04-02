@@ -1,18 +1,18 @@
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "core/Blaster.h"
 #include "core/Platform.h"
 #include "core/weapons/IWeaponLoader.h"
-
-#ifdef PLATFORM_PC
 #include "platform/pc/PCPlatform.h"
-#endif
 
-#ifdef PLATFORM_ESP
-#include "ESPPlatform.h"
-#endif
+// #ifdef PLATFORM_PC
+// #endif
+//
+// #ifdef PLATFORM_ESP
+// #include "platform/esp8266/ESPPlatform.h"
+// #include <Arduino.h>
+// #endif
 
 namespace {
     PlatformServices services;
@@ -26,8 +26,8 @@ namespace {
 
         services.debug->log("App initialization starting");
 
-        const std::string weaponJsonPath = services.assetRoot + "weapon_profiles.json";
-        auto banks = services.loader->loadSoundBanks(weaponJsonPath);
+        const std::string weaponJsonPath = services.assetRoot + "audio/weapon_profiles.json";
+        auto banks = services.loader->loadSoundBanks(weaponJsonPath, services.debug.get());
 
         if (banks.empty()) {
             services.debug->error("No sound banks found");
@@ -66,7 +66,7 @@ namespace {
     }
 }
 
-#ifdef PLATFORM_PC
+// #ifdef PLATFORM_PC
 
 int main() {
     services = PCPlatformFactory::create();
@@ -81,28 +81,28 @@ int main() {
     return 0;
 }
 
-#endif
+// #endif
 
-#ifdef PLATFORM_ESP
-
-void setup() {
-    services = ESPPlatformFactory::create();
-    appInitialized = initializeApp();
-
-    if (!appInitialized && services.debug) {
-        services.debug->error("setup: app initialization failed");
-    }
-}
-
-void loop() {
-    if (!appInitialized) {
-        delay(100);
-        return;
-    }
-
-    if (!tickApp()) {
-        delay(1);
-    }
-}
-
-#endif
+// #ifdef PLATFORM_ESP
+//
+// void setup() {
+//     services = ESPPlatformFactory::create();
+//     appInitialized = initializeApp();
+//
+//     if (!appInitialized && services.debug) {
+//         services.debug->error("setup: app initialization failed");
+//     }
+// }
+//
+// void loop() {
+//     if (!appInitialized) {
+//         delay(100);
+//         return;
+//     }
+//
+//     if (!tickApp()) {
+//         delay(1);
+//     }
+// }
+//
+// #endif

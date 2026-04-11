@@ -1,4 +1,4 @@
-#include "../include/audio/ESPAudioEngine.h"
+#include "platform/esp8266/audio/ESPAudioEngine.h"
 #include "audio/IAudioBackend.h"
 
 ESPAudioEngine::ESPAudioEngine(std::unique_ptr<IAudioBackend> backend)

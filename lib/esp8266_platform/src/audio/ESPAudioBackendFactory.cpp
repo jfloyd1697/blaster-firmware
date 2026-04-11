@@ -1,10 +1,9 @@
-#include "ESPAudioBackendFactory.h"
-
 #include "core/audio/IAudioEngine.h"
 #include "audio/AudioEngine.h"
-#include "BasicESPAudioBackend.h"
-#include "OverlapESPAudioBackend.h"
-#include "../include/audio/PseudoOverlapESPAudioBackend.h"
+#include "platform/esp8266/audio/ESPAudioBackendFactory.h"
+#include "platform/esp8266/audio/BasicESPAudioBackend.h"
+#include "platform/esp8266/audio/OverlapESPAudioBackend.h"
+#include "platform/esp8266/audio/PseudoOverlapESPAudioBackend.h"
 
 std::unique_ptr<IAudioEngine> createESPAudioEngine(
     const ESPAudioBackendType type,

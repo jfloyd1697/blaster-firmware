@@ -11,7 +11,8 @@
 #endif
 
 #ifdef PLATFORM_ESP
-#include "ESPPlatform.h"
+#include "platform/esp8266/ESPPlatform.h"
+#include <Arduino.h>
 #endif
 
 namespace {

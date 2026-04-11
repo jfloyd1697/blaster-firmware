@@ -2,6 +2,7 @@
   "name": "core",
   "version": "0.1.0",
   "build": {
-    "includeDir": "."
+    "includeDir": "include",
+    "sourceDir": "src"
   }
 }

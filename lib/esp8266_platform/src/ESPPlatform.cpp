@@ -9,9 +9,9 @@
 #include "core/time/ITime.h"
 #include "core/weapons/IWeaponLoader.h"
 
-#include "ESPPlatform.h"
-#include "input/ESPInput.h"
-#include "../include/audio/ESPAudioBackendFactory.h"
+#include "platform/esp8266/ESPPlatform.h"
+#include "platform/esp8266/input/ESPInput.h"
+#include "platform/esp8266/audio/ESPAudioBackendFactory.h"
 
 namespace {
     //

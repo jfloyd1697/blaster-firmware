@@ -2,7 +2,7 @@
 #include <string>
 
 #include "core/Blaster.h"
-#include "audio/IAudioEngine.h"
+#include "core/audio/IAudioEngine.h"
 
 namespace {
     const WeaponProfile& invalidWeapon() {

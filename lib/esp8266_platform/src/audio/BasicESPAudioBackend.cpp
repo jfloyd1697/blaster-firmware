@@ -31,7 +31,7 @@ bool BasicESPAudioBackend::begin() {
     }
 
     m_out->SetPinout(3, D8, D4);
-    m_out->SetGain(1.0f);
+    m_out->SetGain(0.5f);
 
     if (m_debug != nullptr) {
         m_debug->log("BasicESPAudioBackend: I2S output initialized");

@@ -32,6 +32,13 @@ if(BLASTER_PLATFORM STREQUAL "PC")
     target_compile_definitions(BlasterApp PRIVATE PLATFORM_PC)
     target_link_libraries(BlasterApp PRIVATE winmm)
     target_link_libraries(BlasterApp PRIVATE pc_platform)
+
+    add_custom_command(TARGET BlasterApp POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets
+            $<TARGET_FILE_DIR:BlasterApp>/assets
+    )
+
 elseif(BLASTER_PLATFORM STREQUAL "ESP")
     target_compile_definitions(BlasterApp PRIVATE PLATFORM_ESP)
     target_link_libraries(BlasterApp PRIVATE esp8266_platform)

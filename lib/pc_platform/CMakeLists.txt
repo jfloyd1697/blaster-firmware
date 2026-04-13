@@ -14,7 +14,6 @@ target_link_libraries(pc_platform
         PUBLIC
         core
         audio
-        lights
 )
 
 target_compile_definitions(pc_platform

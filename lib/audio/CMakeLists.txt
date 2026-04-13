@@ -12,4 +12,9 @@ target_include_directories(audio
         ${CMAKE_SOURCE_DIR}/include
 )
 
+target_link_libraries(audio
+        PUBLIC
+        core
+)
+
 target_compile_features(audio PUBLIC cxx_std_17)

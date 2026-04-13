@@ -9,11 +9,11 @@
 
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <windows.h>    // For WinMM audio
-#include <fstream>
 #include <sstream>
 
 #include "core/Platform.h"
@@ -21,8 +21,7 @@
 #include "core/debug/IDebug.h"
 #include "core/time/ITime.h"
 #include "core/weapons/IWeaponLoader.h"
-
-#include "input/PCInput.h"
+#include "platform/pc/input/PCInput.h"
 
 // ------------------------- PC Debug -------------------------
 struct PCDebug : public IDebug {
@@ -85,6 +84,11 @@ private:
 class PCWeaponLoader : public IWeaponLoader {
 protected:
     std::string loadText(const std::string& path) override {
+        if (!std::filesystem::exists(path)) {
+            std::cout << "PCWeaponLoader: File does not exist: " << path << std::endl;
+            return path;
+        }
+
         std::ifstream file(path);
         if (!file.is_open()) {
             return {};
@@ -93,17 +97,16 @@ protected:
         std::ostringstream buffer;
         buffer << file.rdbuf();
         return buffer.str();
-    }
+    };
 };
-
 
 // ------------------------- PC Platform Factory -------------------------
 struct PCPlatformFactory {
     static PlatformServices create() {
         PlatformServices services;
         services.debug = std::make_unique<PCDebug>();
-        services.input = std::make_unique<PCInput>();
         services.time = std::make_unique<PCTime>();
+        services.input = std::make_unique<PCInput>(services.time.get());
         services.audio = std::make_unique<PCAudioEngine>(services.debug.get());
         services.loader = std::make_unique<PCWeaponLoader>();
         services.assetRoot = "assets/"; // Default asset root

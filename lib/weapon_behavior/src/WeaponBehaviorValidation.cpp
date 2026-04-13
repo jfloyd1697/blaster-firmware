@@ -1,6 +1,5 @@
-#include "weapon_behavior/WeaponBehaviorValidation.h"
-
 #include <unordered_set>
+#include "weapon_behavior/WeaponBehaviorValidation.h"
 
 namespace weapon_behavior {
     namespace {

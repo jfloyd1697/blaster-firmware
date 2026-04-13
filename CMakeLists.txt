@@ -10,6 +10,7 @@ set_property(CACHE BLASTER_PLATFORM PROPERTY STRINGS PC ESP)
 add_subdirectory(lib/weapon_behavior)
 add_subdirectory(lib/core)
 add_subdirectory(lib/audio)
+add_subdirectory(lib/basic_weapons)
 add_subdirectory(lib/pc_platform)
 add_subdirectory(lib/esp8266_platform)
 

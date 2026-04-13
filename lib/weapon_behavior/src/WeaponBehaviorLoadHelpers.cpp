@@ -1,10 +1,9 @@
-#include "../../include/core/weapons/WeaponBehaviorLoadHelpers.h"
-
 #include <sstream>
 #include <stdexcept>
 
-#include "core/text_resource_loader/ITextResourceLoader.h"
+#include "weapon_behavior/text_resource_loader/ITextResourceLoader.h"
 #include "weapon_behavior/WeaponBehaviorParser.h"
+#include "weapon_behavior/WeaponBehaviorLoadHelpers.h"
 #include "weapon_behavior/WeaponBehaviorValidation.h"
 
 namespace weapon_behavior {

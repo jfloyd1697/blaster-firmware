@@ -3,12 +3,20 @@
 
 #pragma once
 
+#include <map>
 #include <string>
+
+#include "nlohmann/json.hpp"
 
 
 struct WeaponProfile {
     std::string name;
-    std::string behaviorPath;
+    std::string category;
+    std::map<std::string, std::string> properties;
+    int magazineSize;
+
+    bool static from_json(nlohmann::basic_json<> item, const WeaponProfile & profile);
+
 };
 
 #endif

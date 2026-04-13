@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "core/text_resource_loader/ITextResourceLoader.h"
+#include "weapon_behavior/text_resource_loader/ITextResourceLoader.h"
 
 #include <filesystem>
 #include <fstream>

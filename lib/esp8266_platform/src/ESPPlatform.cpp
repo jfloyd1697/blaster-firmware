@@ -7,18 +7,19 @@
 
 #include "core/debug/IDebug.h"
 #include "core/time/ITime.h"
+#include "core/weapons/IWeaponLoader.h"
 
 #include "platform/esp8266/ESPPlatform.h"
+
+#include "basic_weapons/BasicWeaponLoader.h"
 #include "platform/esp8266/input/ESPInput.h"
 #include "platform/esp8266/audio/ESPAudioBackendFactory.h"
-#include "platform/esp8266/text_resource_loader/ESPTextResourceLoader.h"
-#include "platform/esp8266/time/ESPTime.h"
 
 namespace {
     //
     // ------------------------- ESP Debug -------------------------
     //
-    struct ESPDebug : public IDebug {
+    struct ESPDebug : IDebug {
         void log(const std::string &msg) override {
             Serial.println(("[LOG] " + msg).c_str());
         }
@@ -28,6 +29,45 @@ namespace {
         }
     };
 
+    //
+    // ------------------------- ESP Time -------------------------
+    //
+    struct ESPTime : ITime {
+        uint64_t millis() const override {
+            return ::millis();
+        }
+    };
+
+    //
+    // ------------------------- ESP Weapon Loader -------------------------
+    //
+    class ESPWeaponLoader : public BasicWeaponLoader {
+    protected:
+        std::string loadText(const std::string &path) override {
+            File file = SD.open(path.c_str(), FILE_READ);
+            if (!file) {
+                return {};
+            }
+
+            const size_t size = file.size();
+            if (size == 0 || size > 20 * 1024) {
+                file.close();
+                return {};
+            }
+
+            std::string text;
+            text.resize(size);
+
+            const size_t bytesRead = file.readBytes(text.data(), size);
+            file.close();
+
+            if (bytesRead != size) {
+                return {};
+            }
+
+            return text;
+        }
+    };
 } // anonymous namespace
 
 
@@ -63,14 +103,14 @@ PlatformServices ESPPlatformFactory::create() {
     // SPI + SD
     SPI.begin();
 
-    constexpr int sdCsPin = D1;
-    bool sdOk = SD.begin(sdCsPin);
+    const int sdCsPin = D1;
+    const bool sdOk = SD.begin(sdCsPin);
 
-    // if (sdOk) {
-        // services.debug->log("ESPPlatform: SD init FAILED");
-    // } else {
-        // services.debug->log("ESPPlatform: SD init OK");
-    // }
+    if (!sdOk) {
+        services.debug->error("ESPPlatform: SD init FAILED");
+    } else {
+        services.debug->log("ESPPlatform: SD init OK");
+    }
 
     // Audio
     auto audio = createESPAudioEngine(
@@ -90,7 +130,7 @@ PlatformServices ESPPlatformFactory::create() {
     services.audio = std::move(audio);
 
     // Weapon loader
-    services.loader = std::make_unique<EspSdTextResourceLoader>(services.debug.get());
+    services.loader = std::make_unique<ESPWeaponLoader>();
 
     // Asset root
     services.assetRoot = "/assets/";

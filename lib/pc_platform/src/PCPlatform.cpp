@@ -21,10 +21,11 @@
 #include "platform/pc/audio/PCAudioBackend.h"
 #include "platform/pc/PCPlatform.h"
 #include "platform/pc/text_resource_loader/PCTextResourceLoader.h"
+#include "platform/pc/weapons/PCBasicWeaponLoader.h"
 
 
 // ------------------------- PC Debug -------------------------
-struct PCDebug : public IDebug {
+struct PCDebug : IDebug {
     void log(const std::string &msg) override {
         std::cout << "[LOG] " << msg << std::endl;
     }
@@ -36,7 +37,7 @@ struct PCDebug : public IDebug {
 
 // ------------------------- PC Time -------------------------
 
-struct PCTime : public ITime {
+struct PCTime : ITime {
     uint64_t millis() const override {
         auto now = std::chrono::steady_clock::now();
         return std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -63,9 +64,10 @@ PlatformServices PCPlatformFactory::create() {
         services.debug->error("PCPlatform: audio begin failed");
     }
 
-    services.audio = std::move(audio);
+    auto loader = std::make_unique<PCBasicWeaponLoader>(services.debug.get());
 
-    services.loader = std::make_unique<PCTextResourceLoader>(services.debug.get());
+    services.audio = std::move(audio);
+    services.loader = std::move(loader);
     services.assetRoot = "assets/"; // Default asset root
     return services;
 }

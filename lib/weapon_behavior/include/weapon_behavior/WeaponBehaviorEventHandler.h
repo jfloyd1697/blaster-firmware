@@ -1,19 +1,18 @@
-#ifndef BLASTER_FIRMWARE_WEAPONBEHAVIORCONTROLLER_H
-#define BLASTER_FIRMWARE_WEAPONBEHAVIORCONTROLLER_H
+#ifndef BLASTER_FIRMWARE_WEAPONBEHAVIOREVENTHANDLER_H
+#define BLASTER_FIRMWARE_WEAPONBEHAVIOREVENTHANDLER_H
 
 #pragma once
 
-#include <cstdint>
 #include <deque>
 #include <string>
 #include <vector>
 
-#include "core/weapons/ShootContext.h"
-#include "weapon_behavior/WeaponBehaviorTypes.h"
+#include "ShootContext.h"
+#include "WeaponBehaviorTypes.h"
 
-class WeaponBehaviorController {
+class WeaponBehaviorEventHandler {
 public:
-    WeaponBehaviorController(const WeaponBehaviorDef &behavior, ShootContext context);
+    WeaponBehaviorEventHandler(const WeaponBehaviorDef *behavior, ShootContext context);
 
     void initialize();
 
@@ -53,7 +52,7 @@ private:
 
     [[nodiscard]] std::uint64_t nowMs() const;
 
-    const WeaponBehaviorDef &m_behavior;
+    WeaponBehaviorDef m_behavior;
     ShootContext m_context;
     std::string m_currentState;
     std::deque<std::string> m_pendingEvents;
@@ -61,4 +60,4 @@ private:
     bool m_isProcessingEvents = false;
 };
 
-#endif // BLASTER_FIRMWARE_WEAPONBEHAVIORCONTROLLER_H
+#endif // BLASTER_FIRMWARE_WEAPONBEHAVIOREVENTHANDLER_H

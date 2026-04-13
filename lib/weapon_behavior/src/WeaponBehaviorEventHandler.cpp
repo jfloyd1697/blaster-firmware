@@ -1,5 +1,3 @@
-#include "core/weapons/WeaponBehaviorController.h"
-
 #include <algorithm>
 #include <cstdlib>
 #include <stdexcept>
@@ -7,6 +5,8 @@
 
 #include "core/debug/IDebug.h"
 #include "core/time/ITime.h"
+#include "weapon_behavior/WeaponBehaviorEventHandler.h"
+
 
 namespace {
 std::size_t randomIndex(const std::size_t count) {
@@ -17,34 +17,33 @@ std::size_t randomIndex(const std::size_t count) {
 }
 }
 
-WeaponBehaviorController::WeaponBehaviorController(
-    const weapon_behavior::WeaponBehaviorDef& behavior,
-    ShootContext context)
-    : m_behavior(behavior),
-      m_context(std::move(context)),
-      m_currentState(behavior.initialState) {
+
+WeaponBehaviorEventHandler::WeaponBehaviorEventHandler(const WeaponBehaviorDef *behavior, const ShootContext *context) {
+    m_behavior = *behavior;
+    m_context = *context;
+    m_currentState = behavior->initialState;
 }
 
-void WeaponBehaviorController::initialize() {
+void WeaponBehaviorEventHandler::initialize() {
     enterState(m_currentState);
     processPendingEvents();
 }
 
-void WeaponBehaviorController::update() {
+void WeaponBehaviorEventHandler::update() {
     processScheduledEvents();
     processPendingEvents();
 }
 
-void WeaponBehaviorController::handleEvent(const std::string& event) {
+void WeaponBehaviorEventHandler::handleEvent(const std::string& event) {
     m_pendingEvents.push_back(event);
     processPendingEvents();
 }
 
-const std::string& WeaponBehaviorController::currentState() const {
+const std::string& WeaponBehaviorEventHandler::currentState() const {
     return m_currentState;
 }
 
-void WeaponBehaviorController::enterState(const std::string& stateName) {
+void WeaponBehaviorEventHandler::enterState(const std::string& stateName) {
     const auto* state = findState(stateName);
     if (!state) {
         throw std::runtime_error("WeaponBehaviorController: unknown state on enter: " + stateName);
@@ -57,7 +56,7 @@ void WeaponBehaviorController::enterState(const std::string& stateName) {
     executeActions(state->onEnter);
 }
 
-void WeaponBehaviorController::exitState() {
+void WeaponBehaviorEventHandler::exitState() {
     const auto* state = findState(m_currentState);
     if (!state) {
         throw std::runtime_error("WeaponBehaviorController: unknown state on exit: " + m_currentState);
@@ -66,7 +65,7 @@ void WeaponBehaviorController::exitState() {
     executeActions(state->onExit);
 }
 
-void WeaponBehaviorController::processPendingEvents() {
+void WeaponBehaviorEventHandler::processPendingEvents() {
     if (m_isProcessingEvents) {
         return;
     }
@@ -102,7 +101,7 @@ void WeaponBehaviorController::processPendingEvents() {
     m_isProcessingEvents = false;
 }
 
-void WeaponBehaviorController::processScheduledEvents() {
+void WeaponBehaviorEventHandler::processScheduledEvents() {
     const std::uint64_t now = nowMs();
 
     std::vector<std::string> readyEvents;
@@ -125,13 +124,13 @@ void WeaponBehaviorController::processScheduledEvents() {
     }
 }
 
-void WeaponBehaviorController::executeActions(const std::vector<ActionDef>& actions) {
+void WeaponBehaviorEventHandler::executeActions(const std::vector<ActionDef>& actions) {
     for (const auto& action : actions) {
         executeAction(action);
     }
 }
 
-void WeaponBehaviorController::executeAction(const ActionDef& action) {
+void WeaponBehaviorEventHandler::executeAction(const ActionDef& action) {
     if (action.type == "play_sound") {
         if (m_context.playSound && action.sound.has_value()) {
             m_context.playSound(*action.sound, action.loop.value_or(false));
@@ -223,7 +222,7 @@ void WeaponBehaviorController::executeAction(const ActionDef& action) {
     throw std::runtime_error("WeaponBehaviorController: unknown action type: " + action.type);
 }
 
-void WeaponBehaviorController::executeSequence(const std::string& name) {
+void WeaponBehaviorEventHandler::executeSequence(const std::string& name) {
     const auto it = m_behavior.actionSequences.find(name);
     if (it == m_behavior.actionSequences.end()) {
         throw std::runtime_error("WeaponBehaviorController: unknown action sequence: " + name);
@@ -232,14 +231,14 @@ void WeaponBehaviorController::executeSequence(const std::string& name) {
     executeActions(it->second);
 }
 
-void WeaponBehaviorController::scheduleEvent(const std::string& event, const int delayMs) {
+void WeaponBehaviorEventHandler::scheduleEvent(const std::string& event, const int delayMs) {
     m_scheduledEvents.push_back(ScheduledEvent{
         event,
         nowMs() + static_cast<std::uint64_t>(delayMs)
     });
 }
 
-const StateDef* WeaponBehaviorController::findState(const std::string& stateName) const {
+const StateDef* WeaponBehaviorEventHandler::findState(const std::string& stateName) const {
     const auto it = m_behavior.states.find(stateName);
     if (it == m_behavior.states.end()) {
         return nullptr;
@@ -247,7 +246,7 @@ const StateDef* WeaponBehaviorController::findState(const std::string& stateName
     return &it->second;
 }
 
-const TransitionDef* WeaponBehaviorController::findTransition(
+const TransitionDef* WeaponBehaviorEventHandler::findTransition(
     const StateDef& state,
     const std::string& event) {
     for (const auto& transition : state.transitions) {
@@ -258,9 +257,9 @@ const TransitionDef* WeaponBehaviorController::findTransition(
     return nullptr;
 }
 
-std::uint64_t WeaponBehaviorController::nowMs() const {
-    if (!m_context.time) {
+std::uint64_t WeaponBehaviorEventHandler::nowMs() const {
+    if (!m_context) {
         return 0;
     }
-    return static_cast<std::uint64_t>(m_context.time->millis());
+    return m_context->time->millis() ;
 }

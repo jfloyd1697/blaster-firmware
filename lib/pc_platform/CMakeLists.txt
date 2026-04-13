@@ -13,6 +13,7 @@ target_link_libraries(pc_platform
         PUBLIC
         core
         audio
+        basic_weapons
 )
 
 if (WIN32)

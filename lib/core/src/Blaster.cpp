@@ -8,12 +8,14 @@
 #include "core/debug/IDebug.h"
 #include "core/input/IInput.h"
 #include "core/lights/ILights.h"
-#include "core/weapons/ShootContext.h"
 #include "core/weapons/SoundBank.h"
 #include "core/weapons/WeaponProfile.h"
-#include "core/weapons//WeaponBehaviorController.h"
-#include "core/weapons/WeaponBehaviorLoadHelpers.h"
+
+#include "weapon_behavior/ShootContext.h"
+#include "weapon_behavior/WeaponBehaviorEventHandler.h"
+#include "weapon_behavior/WeaponBehaviorLoadHelpers.h"
 #include "weapon_behavior/WeaponBehaviorTypes.h"
+
 
 using namespace weapon_behavior;
 
@@ -36,8 +38,8 @@ bool Blaster::update() {
     handleReloadInput();
     handleTriggerInput();
 
-    if (m_behaviorController) {
-        m_behaviorController->update();
+    if (m_controller) {
+        m_controller->update();
     }
 
     return !shouldQuit();
@@ -57,32 +59,43 @@ void Blaster::handleWeaponSelectionInput() {
     }
 }
 
-void Blaster::handleReloadInput() const {
-    if (!m_services.input || !m_behaviorController) {
+void Blaster::handleReloadInput() {
+    if (!m_services.input || !m_controller) {
         return;
     }
 
     if (m_services.input->wasReloadPressed()) {
-        m_behaviorController->handleEvent("reload");
+        m_controller->reloadWeapon();
+    }
+
+    if (!m_currentProfile) {
+        return;
+    }
+
+    m_currentAmmo = m_currentProfile->magazineSize;
+
+    if (m_services.debug) {
+        m_services.debug->log("Reloaded weapon: " + m_currentProfile->name);
     }
 }
 
 void Blaster::handleTriggerInput() const {
-    if (!m_services.input || !m_behaviorController) {
+    if (!m_services.input || !m_controller) {
         return;
     }
 
     if (m_services.input->wasTriggerPressed()) {
-        m_behaviorController->handleEvent("trigger_pressed");
-    }
-
-    if (m_services.input->wasTriggerReleased()) {
-        m_behaviorController->handleEvent("trigger_released");
+        m_controller->onTriggerPressed();
     }
 
     if (m_services.input->isTriggerHeld()) {
-        m_behaviorController->handleEvent("trigger_held");
+        m_controller->onTriggerHeld();
     }
+
+    if (m_services.input->wasTriggerReleased()) {
+        m_controller->onTriggerReleased();
+    }
+
 }
 
 void Blaster::selectNextWeapon() {
@@ -117,22 +130,6 @@ void Blaster::selectPreviousWeapon() {
     equipCurrentWeapon();
 }
 
-void Blaster::reloadCurrentWeapon() {
-    if (!m_currentProfile) {
-        return;
-    }
-
-    m_currentAmmo = m_behaviorDef->magazineSize;
-
-    if (m_services.debug) {
-        m_services.debug->log("Reloaded weapon: " + m_currentProfile->name);
-    }
-
-    if (m_behaviorController) {
-        m_behaviorController->handleEvent("reload_complete");
-    }
-}
-
 void Blaster::equipCurrentWeapon() {
     m_currentProfile = currentWeapon();
 
@@ -140,98 +137,10 @@ void Blaster::equipCurrentWeapon() {
         if (m_services.debug) {
             m_services.debug->error("Blaster::equipCurrentWeapon: no weapon available");
         }
-        m_behaviorDef.reset();
-        m_behaviorController.reset();
+        m_controller.reset();
         return;
     }
-
-    m_currentAmmo = m_behaviorDef->magazineSize;
-
-    if (!m_services.loader) {
-        if (m_services.debug) {
-            m_services.debug->error("Blaster::equipCurrentWeapon: no text loader available");
-        }
-        m_behaviorDef.reset();
-        m_behaviorController.reset();
-        return;
-    }
-
-    try {
-        m_behaviorDef = loadWeaponBehavior(*m_services.loader, m_currentProfile->behaviorPath);
-    } catch (const std::exception &ex) {
-        if (m_services.debug) {
-            m_services.debug->error(
-                "Blaster::equipCurrentWeapon: failed to load behavior for " +
-                m_currentProfile->name + ": " + ex.what());
-        }
-        m_behaviorDef.reset();
-        m_behaviorController.reset();
-        return;
-    }
-
-    ShootContext ctx;
-    ctx.time = m_services.time.get();
-    ctx.audio = m_services.audio.get();
-    ctx.debug = m_services.debug.get();
-    ctx.profile = m_currentProfile;
-    ctx.ammo = &m_currentAmmo;
-
-    ctx.emitShot = [this] {
-        emitShot();
-    };
-
-    ctx.flashMuzzle = [this] {
-        flashMuzzle();
-    };
-
-    ctx.playSound = [this](const std::string &path, bool loop) {
-        if (!m_services.audio || path.empty()) {
-            return;
-        }
-        m_services.audio->playSound(path, loop);
-    };
-
-    ctx.playRandomSound = [this](const std::vector<std::string> &sounds, bool loop) {
-        if (!m_services.audio || sounds.empty()) {
-            return;
-        }
-
-        const std::size_t index = static_cast<std::size_t>(std::rand()) % sounds.size();
-        m_services.audio->playSound(sounds[index], loop);
-    };
-
-    ctx.stopSound = [this]() {
-        if (!m_services.audio) {
-            return;
-        }
-        m_services.audio->stop();
-    };
-
-    ctx.setLight = [this](const LightPatternDef &pattern) {
-        if (!m_services.lights) {
-            return;
-        }
-        m_services.lights->setPattern(std::make_shared<LightPatternDef>(pattern));
-    };
-
-    ctx.flashLight = [this](const LightPatternDef &) {
-        if (!m_services.lights) {
-            return;
-        }
-        m_services.lights->flash();
-    };
-
-    ctx.emitBehaviorEvent = [this](const std::string &event) {
-        if (m_behaviorController) {
-            m_behaviorController->handleEvent(event);
-        }
-    };
-
-    m_behaviorController = std::make_unique<WeaponBehaviorController>(
-        *m_behaviorDef,
-        std::move(ctx));
-
-    m_behaviorController->initialize();
+    m_controller->equipWeapon(*m_currentProfile);
 
     if (m_services.debug) {
         m_services.debug->log("Equipped weapon: " + m_currentProfile->name);
@@ -257,26 +166,6 @@ const WeaponProfile *Blaster::currentWeapon() const {
     }
 
     return &bank.weapons[m_currentWeaponIndex];
-}
-
-void Blaster::emitShot() const {
-    if (!m_currentProfile) {
-        return;
-    }
-
-    if (m_services.debug) {
-        m_services.debug->log(
-            "Shot fired: " + m_currentProfile->name +
-            ", ammo remaining: " + std::to_string(m_currentAmmo));
-    }
-}
-
-void Blaster::flashMuzzle() const {
-    if (!m_services.lights) {
-        return;
-    }
-
-    m_services.lights->flash();
 }
 
 bool Blaster::shouldQuit() const {

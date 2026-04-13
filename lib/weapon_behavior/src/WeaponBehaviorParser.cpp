@@ -1,8 +1,6 @@
-#include "weapon_behavior/WeaponBehaviorParser.h"
-
 #include <stdexcept>
-
 #include <nlohmann/json.hpp>
+#include "weapon_behavior/WeaponBehaviorParser.h"
 
 using json = nlohmann::json;
 

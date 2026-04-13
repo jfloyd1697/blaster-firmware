@@ -5,14 +5,12 @@
 
 #include <cstddef>
 #include <memory>
-#include <optional>
 #include <vector>
 
 #include "Platform.h"
 #include "core/weapons/SoundBank.h"
 #include "core/weapons/WeaponProfile.h"
-#include "core/weapons/WeaponBehaviorController.h"
-#include "weapon_behavior/WeaponBehaviorTypes.h"
+#include "core/weapons/IWeaponController.h"
 
 class Blaster {
 public:
@@ -22,18 +20,14 @@ public:
 
     bool update();
 
-protected:
     void handleWeaponSelectionInput();
-    void handleReloadInput() const;
+    void handleReloadInput();
     void handleTriggerInput() const;
 
     void selectNextWeapon();
     void selectPreviousWeapon();
-    void reloadCurrentWeapon();
 
     void equipCurrentWeapon();
-    void emitShot() const;
-    void flashMuzzle() const;
 
     [[nodiscard]] bool shouldQuit() const;
     [[nodiscard]] const WeaponProfile* currentWeapon() const;
@@ -45,11 +39,10 @@ private:
     std::size_t m_currentBankIndex = 0;
     std::size_t m_currentWeaponIndex = 0;
 
-    const WeaponProfile* m_currentProfile = nullptr;
+    const WeaponProfile *m_currentProfile = nullptr;
     int m_currentAmmo = 0;
 
-    std::optional<WeaponBehaviorDef> m_behaviorDef;
-    std::unique_ptr<WeaponBehaviorController> m_behaviorController;
+    std::unique_ptr<IWeaponController> m_controller;
 };
 
 #endif // BLASTER_FIRMWARE_BLASTER_H

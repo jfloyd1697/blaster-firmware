@@ -37,6 +37,8 @@ target_link_libraries(esp8266_platform
         PUBLIC
         core
         audio
+        basic_weapons
+        weapon_behavior
         esp8266_intellisense
 )
 

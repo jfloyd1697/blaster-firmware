@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "weapon_behavior/WeaponBehaviorTypes.h"
+#include "WeaponBehaviorTypes.h"
 
 
 class ITextResourceLoader;

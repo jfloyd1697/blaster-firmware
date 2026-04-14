@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "weapon": "lego-star-wars-leia-blaster",
+  "magazineSize": 0,
+  "initialState": "idle",
+  "actionSequences": {
+    "fire_single": [
+      {
+        "type": "play_sound_random",
+        "sounds": [
+          "audio\\blaster\\lego-star-wars-leia-blaster.wav"
+        ]
+      },
+      {
+        "type": "emit_shot"
+      },
+      {
+        "type": "flash_muzzle"
+      },
+      {
+        "type": "consume_ammo",
+        "amount": 1
+      }
+    ]
+  },
+  "states": {
+    "idle": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [
+              0,
+              120,
+              255
+            ],
+            "brightness": 120
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "idle",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "fire_single"
+            }
+          ]
+        },
+        {
+          "event": "ammo_empty",
+          "target": "empty"
+        },
+        {
+          "event": "reload",
+          "target": "reloading"
+        }
+      ]
+    },
+    "empty": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "pulse",
+            "color": [
+              255,
+              0,
+              0
+            ],
+            "brightness": 180,
+            "intervalMs": 220
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "reload_complete",
+          "target": "idle"
+        },
+        {
+          "event": "reload",
+          "target": "reloading"
+        }
+      ]
+    },
+    "reloading": {
+      "onEnter": [],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "reload_complete",
+          "target": "idle"
+        }
+      ]
+    }
+  }
+}

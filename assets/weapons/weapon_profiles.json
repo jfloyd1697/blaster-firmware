@@ -356,6 +356,19 @@
           }
         }
       ]
+    },
+    {
+      "name": "behaviors",
+      "weapons": [
+        {
+          "name": "Anakin Hurt",
+          "profile": "assets/audio/weapons/anakin_hurt/weapon_profile.json"
+        },
+        {
+          "name": "Chainsaw",
+          "profile": "assets/audio/weapons/chainsaw/weapon_profile.json"
+        }
+      ]
     }
   ]
 }

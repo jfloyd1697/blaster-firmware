@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "banks": [
+    {
+      "name": "Blaster",
+      "weapons": [
+        "atst-chinguns-online-audio-converter.wav/behavior.json",
+        "battle-droid-blaster.wav/behavior.json",
+        "blast-2.wav/behavior.json",
+        "blast-3.wav/behavior.json",
+        "blaster-ligero.wav/behavior.json",
+        "blasterpistol1.wav/behavior.json",
+        "boba-fetts-blaster.wav/behavior.json",
+        "clone-blaster.wav/behavior.json",
+        "clone-commando-blaster.wav/behavior.json",
+        "droideka-blaster.wav/behavior.json",
+        "e-11.wav/behavior.json",
+        "fleet-trooper-blaster.wav/behavior.json",
+        "jango-fett-blaster-1.wav/behavior.json",
+        "lego-star-wars-droid-trifighter-blaster1.wav/behavior.json",
+        "lego-star-wars-droid-trifighter-blaster2.wav/behavior.json",
+        "lego-star-wars-leia-blaster.wav/behavior.json",
+        "lego-star-wars-tie-fighter-blaster2.wav/behavior.json",
+        "lego-star-wars-y-wing-blaster.wav/behavior.json",
+        "naboo-royal-blaster.wav/behavior.json",
+        "probe-droid-blaster.wav/behavior.json",
+        "sandtrooper-blaster.wav/behavior.json",
+        "scout-blaster.wav/behavior.json",
+        "stormtrooper-blaster-2_DofYccb.wav/behavior.json",
+        "tie-blaster-cannon.wav/behavior.json",
+        "tie-fighter-fire-1.wav/behavior.json",
+        "w-dl-44-blaster-pistol.wav/behavior.json",
+        "w-e-11-blaster-rifle.wav/behavior.json",
+        "walker-blaster.wav/behavior.json"
+      ]
+    },
+    {
+      "name": "Fart",
+      "weapons": [
+        "basic_fart.wav/behavior.json",
+        "dry-fart.wav/behavior.json",
+        "fart-with-extra-reverb.wav/behavior.json",
+        "farth-vader.wav/behavior.json",
+        "nanofartv2.wav/behavior.json",
+        "nuclear-fart-1.wav/behavior.json",
+        "wet-fart-meme.wav/behavior.json",
+        "wet-fart_1.wav/behavior.json"
+      ]
+    },
+    {
+      "name": "Default",
+      "weapons": [
+        "sawn_off/behavior.json",
+        "shotgun/behavior.json"
+      ]
+    },
+    {
+      "name": "SciFi",
+      "weapons": [
+        "charge_cannon/behavior.json"
+      ]
+    },
+    {
+      "name": "Tools",
+      "weapons": [
+        "chainsaw/behavior.json"
+      ]
+    },
+    {
+      "name": "Characters",
+      "weapons": [
+        "anakin_hurt/behavior.json",
+        "padme_hurt/behavior.json"
+      ]
+    }
+  ]
+}

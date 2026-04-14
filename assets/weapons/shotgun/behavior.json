@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "weapon": "shotgun",
+  "magazineSize": 2,
+  "initialState": "idle",
+  "actionSequences": {
+    "fire_single": [
+      {
+        "type": "play_sound_random",
+        "sounds": [
+          "assets/weapons/shotgun/12_sound_shotgunFire.wav"
+        ]
+      },
+      {
+        "type": "emit_shot"
+      },
+      {
+        "type": "flash_muzzle"
+      },
+      {
+        "type": "consume_ammo",
+        "amount": 1
+      }
+    ],
+    "reload_fx": [
+      {
+        "type": "play_sound",
+        "sound": "assets/weapons/shotgun/13_sound_shotgunPump.wav"
+      },
+      {
+        "type": "set_light",
+        "pattern": {
+          "mode": "pulse",
+          "color": [
+            0,
+            255,
+            80
+          ],
+          "brightness": 180,
+          "intervalMs": 180
+        }
+      }
+    ]
+  },
+  "states": {
+    "idle": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [
+              0,
+              120,
+              255
+            ],
+            "brightness": 120
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "idle",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "fire_single"
+            }
+          ]
+        },
+        {
+          "event": "ammo_empty",
+          "target": "empty"
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "empty": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "pulse",
+            "color": [
+              255,
+              0,
+              0
+            ],
+            "brightness": 180,
+            "intervalMs": 220
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "reload_complete",
+          "target": "idle"
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "reloading": {
+      "onEnter": [],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "reload_complete",
+          "target": "idle"
+        }
+      ]
+    }
+  }
+}

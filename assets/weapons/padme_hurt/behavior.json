@@ -1,0 +1,274 @@
+{
+  "version": 1,
+  "weapon": "padme_hurt",
+  "magazineSize": 4,
+  "initialState": "equip",
+  "actionSequences": {
+    "equip": [
+      {
+        "type": "play_sound",
+        "sound": "assets/audio/lego_util/lego-star-wars-switch-character-sound.wav"
+      },
+      {
+        "type": "set_light",
+        "pattern": {
+          "mode": "solid",
+          "color": [
+            0,
+            255,
+            255
+          ],
+          "brightness": 120
+        }
+      },
+      {
+        "type": "schedule_event",
+        "event": "shot_4",
+        "delayMs": 500
+      }
+    ],
+    "fire_sounds": [
+      {
+        "type": "play_sound_random",
+        "sounds": [
+          "assets/weapons/padme_hurt/padme_hurt0.wav",
+          "assets/weapons/padme_hurt/padme_hurt1.wav",
+          "assets/weapons/padme_hurt/padme_hurt2.wav"
+        ]
+      },
+      {
+        "type": "flash_muzzle"
+      },
+      {
+        "type": "flash_light",
+        "pattern": {
+          "mode": "flash",
+          "color": [
+            255,
+            80,
+            0
+          ],
+          "brightness": 255,
+          "durationMs": 80,
+          "count": 1
+        }
+      },
+      {
+        "type": "consume_ammo",
+        "amount": 1
+      }
+    ],
+    "empty_sound": [
+      {
+        "type": "play_sound",
+        "sound": "assets/audio/weapons/anakin_hurt/anakin_die.wav"
+      },
+      {
+        "type": "flash_muzzle"
+      },
+      {
+        "type": "set_light",
+        "pattern": {
+          "mode": "solid",
+          "color": [
+            255,
+            0,
+            0
+          ],
+          "brightness": 40
+        }
+      },
+      {
+        "type": "consume_ammo",
+        "amount": 1
+      }
+    ],
+    "reload_fx": [
+      {
+        "type": "play_sound",
+        "sound": "assets/audio/weapons/anakin_hurt/heart_refill.wav"
+      },
+      {
+        "type": "set_light",
+        "pattern": {
+          "mode": "pulse",
+          "color": [
+            0,
+            255,
+            80
+          ],
+          "brightness": 200,
+          "intervalMs": 160
+        }
+      }
+    ]
+  },
+  "states": {
+    "shots_4": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [
+              255,
+              160,
+              0
+            ],
+            "brightness": 180
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "shots_3",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "fire_sounds"
+            }
+          ]
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "shots_3": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [
+              255,
+              120,
+              0
+            ],
+            "brightness": 180
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "shots_2",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "fire_sounds"
+            }
+          ]
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "shots_2": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [
+              255,
+              80,
+              0
+            ],
+            "brightness": 180
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "empty",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "empty_sound"
+            }
+          ]
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "empty": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [
+              255,
+              40,
+              0
+            ],
+            "brightness": 180
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "empty",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "empty_sound"
+            }
+          ]
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "reloading": {
+      "onEnter": [],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "reload_complete",
+          "target": "shots_4"
+        }
+      ]
+    }
+  }
+}

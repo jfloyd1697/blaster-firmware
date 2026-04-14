@@ -90,7 +90,8 @@ PlatformServices ESPPlatformFactory::create() {
     services.audio = std::move(audio);
 
     // Weapon loader
-    services.loader = std::make_unique<EspSdTextResourceLoader>(services.debug.get());
+    services.text_loader = std::make_unique<EspSdTextResourceLoader>(services.debug.get());
+    services.weapon_loader = std::make_unique<IWeaponLoader>(services.text_loader.get());
 
     // Asset root
     services.assetRoot = "/assets/";

@@ -147,7 +147,7 @@ void Blaster::equipCurrentWeapon() {
 
     m_currentAmmo = m_behaviorDef->magazineSize;
 
-    if (!m_services.loader) {
+    if (!m_services.text_loader) {
         if (m_services.debug) {
             m_services.debug->error("Blaster::equipCurrentWeapon: no text loader available");
         }
@@ -157,7 +157,7 @@ void Blaster::equipCurrentWeapon() {
     }
 
     try {
-        m_behaviorDef = loadWeaponBehavior(*m_services.loader, m_currentProfile->behaviorPath);
+        m_behaviorDef = loadWeaponBehavior(*m_services.text_loader, m_currentProfile->behaviorPath);
     } catch (const std::exception &ex) {
         if (m_services.debug) {
             m_services.debug->error(

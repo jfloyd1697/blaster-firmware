@@ -64,8 +64,8 @@ PlatformServices PCPlatformFactory::create() {
     }
 
     services.audio = std::move(audio);
-
-    services.loader = std::make_unique<PCTextResourceLoader>(services.debug.get());
+    services.text_loader = std::make_unique<PCTextResourceLoader>(services.debug.get());
+    services.weapon_loader = std::make_unique<IWeaponLoader>(services.text_loader.get());
     services.assetRoot = "assets/"; // Default asset root
     return services;
 }

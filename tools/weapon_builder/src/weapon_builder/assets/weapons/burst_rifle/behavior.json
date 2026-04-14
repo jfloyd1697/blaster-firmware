@@ -1,0 +1,272 @@
+{
+  "version": 1,
+  "weapon": "burst_rifle",
+  "magazineSize": 30,
+  "initialState": "idle",
+  "actionSequences": {
+    "burst_shot": [
+      {
+        "type": "play_sound_random",
+        "sounds": [
+          "assets/audio/weapons/burst_rifle/shot_0.wav",
+          "assets/audio/weapons/burst_rifle/shot_1.wav"
+        ]
+      },
+      {
+        "type": "emit_shot"
+      },
+      {
+        "type": "flash_muzzle"
+      },
+      {
+        "type": "consume_ammo",
+        "amount": 1
+      }
+    ],
+    "reload_fx": [
+      {
+        "type": "play_sound",
+        "sound": "assets/audio/weapons/burst_rifle/reload.wav"
+      },
+      {
+        "type": "set_light",
+        "pattern": {
+          "mode": "pulse",
+          "color": [
+            0,
+            255,
+            80
+          ],
+          "brightness": 180,
+          "intervalMs": 180
+        }
+      }
+    ]
+  },
+  "states": {
+    "idle": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [
+              0,
+              120,
+              255
+            ],
+            "brightness": 120
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "burst_1",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "burst_shot"
+            },
+            {
+              "type": "schedule_event",
+              "event": "burst_step_2",
+              "delayMs": 80
+            }
+          ]
+        },
+        {
+          "event": "ammo_empty",
+          "target": "empty"
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "burst_1": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [
+              255,
+              160,
+              60
+            ],
+            "brightness": 220
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "burst_step_2",
+          "target": "burst_2",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "burst_shot"
+            },
+            {
+              "type": "schedule_event",
+              "event": "burst_step_3",
+              "delayMs": 80
+            }
+          ]
+        },
+        {
+          "event": "ammo_empty",
+          "target": "empty"
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "burst_2": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [
+              255,
+              160,
+              60
+            ],
+            "brightness": 220
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "burst_step_3",
+          "target": "idle",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "burst_shot"
+            }
+          ]
+        },
+        {
+          "event": "ammo_empty",
+          "target": "empty"
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "burst_3": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [
+              255,
+              160,
+              60
+            ],
+            "brightness": 220
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "burst_done",
+          "target": "idle"
+        },
+        {
+          "event": "ammo_empty",
+          "target": "empty"
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        },
+        {
+          "event": "burst_step_final",
+          "target": "idle"
+        }
+      ]
+    },
+    "empty": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "pulse",
+            "color": [
+              255,
+              0,
+              0
+            ],
+            "brightness": 180,
+            "intervalMs": 220
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "reload_complete",
+          "target": "idle"
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "reloading": {
+      "onEnter": [],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "reload_complete",
+          "target": "idle"
+        }
+      ]
+    }
+  }
+}

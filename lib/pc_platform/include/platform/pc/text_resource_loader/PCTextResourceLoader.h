@@ -17,8 +17,10 @@
 
 class PCTextResourceLoader : public ITextResourceLoader {
 public:
-    explicit PCTextResourceLoader(IDebug *debug): ITextResourceLoader(debug) {};
-    std::string loadText(const std::string& path) override {
+    explicit PCTextResourceLoader(IDebug *debug) : ITextResourceLoader(debug) {
+    };
+
+    std::string loadText(const std::string &path) override {
         if (!std::filesystem::exists(path)) {
             debug->error("PCTextResourceLoader: file not found: " + path);
         }

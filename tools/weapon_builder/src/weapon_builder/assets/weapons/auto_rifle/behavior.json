@@ -1,0 +1,220 @@
+{
+  "version": 1,
+  "weapon": "auto_rifle",
+  "magazineSize": 30,
+  "initialState": "idle",
+  "actionSequences": {
+    "auto_shot": [
+      {
+        "type": "play_sound_random",
+        "sounds": [
+          "assets/audio/weapons/auto_rifle/shot_0.wav",
+          "assets/audio/weapons/auto_rifle/shot_1.wav"
+        ]
+      },
+      {
+        "type": "emit_shot"
+      },
+      {
+        "type": "flash_muzzle"
+      },
+      {
+        "type": "consume_ammo",
+        "amount": 1
+      }
+    ],
+    "reload_fx": [
+      {
+        "type": "play_sound",
+        "sound": "assets/audio/weapons/auto_rifle/reload.wav"
+      },
+      {
+        "type": "set_light",
+        "pattern": {
+          "mode": "pulse",
+          "color": [
+            0,
+            255,
+            80
+          ],
+          "brightness": 180,
+          "intervalMs": 180
+        }
+      }
+    ]
+  },
+  "states": {
+    "idle": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [
+              0,
+              120,
+              255
+            ],
+            "brightness": 120
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_pressed",
+          "target": "auto_firing",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "auto_shot"
+            },
+            {
+              "type": "schedule_event",
+              "event": "auto_step",
+              "delayMs": 60
+            }
+          ]
+        },
+        {
+          "event": "ammo_empty",
+          "target": "empty"
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "auto_firing": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "solid",
+            "color": [
+              255,
+              160,
+              60
+            ],
+            "brightness": 220
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "auto_step",
+          "target": "auto_wait"
+        },
+        {
+          "event": "trigger_released",
+          "target": "idle"
+        },
+        {
+          "event": "ammo_empty",
+          "target": "empty"
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "auto_wait": {
+      "onEnter": [],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "trigger_held",
+          "target": "auto_firing",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "auto_shot"
+            },
+            {
+              "type": "schedule_event",
+              "event": "auto_step",
+              "delayMs": 60
+            }
+          ]
+        },
+        {
+          "event": "trigger_released",
+          "target": "idle"
+        },
+        {
+          "event": "ammo_empty",
+          "target": "empty"
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "empty": {
+      "onEnter": [
+        {
+          "type": "set_light",
+          "pattern": {
+            "mode": "pulse",
+            "color": [
+              255,
+              0,
+              0
+            ],
+            "brightness": 180,
+            "intervalMs": 220
+          }
+        }
+      ],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "reload_complete",
+          "target": "idle"
+        },
+        {
+          "event": "reload",
+          "target": "reloading",
+          "actions": [
+            {
+              "type": "run_sequence",
+              "name": "reload_fx"
+            }
+          ]
+        }
+      ]
+    },
+    "reloading": {
+      "onEnter": [],
+      "onExit": [],
+      "transitions": [
+        {
+          "event": "reload_complete",
+          "target": "idle"
+        }
+      ]
+    }
+  }
+}

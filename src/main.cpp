@@ -19,19 +19,19 @@ namespace {
     bool appInitialized = false;
 
     bool initializeApp() {
-        if (!services.debug || !services.loader) {
+        if (!services.debug || !services.text_loader) {
             return false;
         }
 
         services.debug->log("App initialization starting");
 
-        const std::string weaponJsonPath = services.assetRoot + "weapons/chainsaw/weapon_profile.json";
+        const std::string weaponJsonPath = services.assetRoot + "weapon_profiles.json";
         auto banks = services.loadSoundBanks(weaponJsonPath);
 
-        // if (banks.empty()) {
-        //     services.debug->error("No sound banks found");
-        //     return false;
-        // }
+        if (banks.empty()) {
+            services.debug->error("No sound banks found");
+            return false;
+        }
 
         services.debug->log("Loaded bank count: " + std::to_string(banks.size()));
 

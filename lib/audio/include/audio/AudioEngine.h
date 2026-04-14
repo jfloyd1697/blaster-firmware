@@ -4,7 +4,6 @@
 #pragma once
 
 #include <memory>
-#include <string>
 
 #include "core/audio/IAudioEngine.h"
 
@@ -20,14 +19,12 @@ public:
 
     void update() override;
 
-    void playSound(const std::string &file, bool loop) override;
+    void playSound(const std::string &file, bool loop = false) override;
 
     void stop() override;
 
 private:
     std::unique_ptr<IAudioBackend> m_backend;
-    std::string m_currentFile;
-    bool m_loop = false;
-    bool m_isPlaying = false;
 };
-#endif //BLASTER_FIRMWARE_AUDIOENGINE_H
+
+#endif // BLASTER_FIRMWARE_AUDIOENGINE_H

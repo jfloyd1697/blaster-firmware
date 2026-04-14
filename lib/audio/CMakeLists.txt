@@ -7,11 +7,7 @@ add_library(audio ${AUDIO_SOURCES})
 target_include_directories(audio
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
-target_link_libraries(audio
-        PUBLIC
-        core
+        ${CMAKE_SOURCE_DIR}/lib/core/include
 )
 
 target_compile_features(audio PUBLIC cxx_std_17)

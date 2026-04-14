@@ -19,12 +19,11 @@ void AudioEngine::update() {
     }
 }
 
-void AudioEngine::playSound(const std::string &file, bool loop) {
+void AudioEngine::playSound(const std::string &file, const bool loop) {
     if (m_backend != nullptr) {
         m_backend->playSound(file, loop);
     }
 }
-
 
 void AudioEngine::stop() {
     if (m_backend != nullptr) {

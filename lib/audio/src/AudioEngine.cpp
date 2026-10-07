@@ -19,9 +19,9 @@ void AudioEngine::update() {
     }
 }
 
-void AudioEngine::playSound(const std::string &file, const bool loop) {
+void AudioEngine::playSound(const std::string &file, const bool loop, const bool blocking) {
     if (m_backend != nullptr) {
-        m_backend->playSound(file, loop);
+        m_backend->playSound(file, loop, blocking);
     }
 }
 

@@ -1,3 +1,6 @@
+#ifndef BLASTER_FIRMWARE_IINPUT_H
+#define BLASTER_FIRMWARE_IINPUT_H
+
 #pragma once
 
 #include <array>
@@ -106,3 +109,5 @@ private:
 
     ITime *m_time = nullptr;
 };
+
+#endif

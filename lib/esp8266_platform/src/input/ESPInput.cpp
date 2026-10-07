@@ -31,7 +31,7 @@ bool ESPInput::readRawButton(const ButtonID button) const {
 
     if (m_pins.ladder < 0) {
         return false;
-    }5
+    }
 
     const int raw = readLadderRaw();
 

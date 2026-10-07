@@ -1,7 +1,3 @@
-//
-// Created by user on 4/1/2026.
-//
-
 #ifndef BLASTER_FIRMWARE_PCAUDIOBACKEND_H
 #define BLASTER_FIRMWARE_PCAUDIOBACKEND_H
 
@@ -15,15 +11,18 @@ struct IDebug;
 
 class PCAudioBackend : public IAudioBackend {
 public:
-    explicit PCAudioBackend(IDebug* debug);
-    ~PCAudioBackend() override = default;
+    explicit PCAudioBackend(IDebug *debug);
+
     bool begin() override;
+
     void update() override;
-    void playSound(const std::string& file, bool loop) override;
+
+    void playSound(const std::string &file, bool loop = false, bool blocking = false) override;
+
     void stop() override;
 
 private:
-    IDebug* m_debug = nullptr;
+    IDebug *m_debug = nullptr;
 };
 
-#endif //BLASTER_FIRMWARE_PCAUDIOBACKEND_H
+#endif // BLASTER_FIRMWARE_PCAUDIOBACKEND_H

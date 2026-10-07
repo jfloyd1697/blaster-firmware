@@ -19,7 +19,6 @@ from .builder import (
 )
 from .model import WeaponBehavior
 
-
 Color = Tuple[int, int, int]
 
 
@@ -36,11 +35,11 @@ class WeaponDirector:
         self.lights = lights or CommonLights()
 
     def build_single_shot(
-        self,
-        weapon: str,
-        magazine_size: int,
-        fire_sounds: List[str],
-        reload_sound: Optional[str | list[str]] = None,
+            self,
+            weapon: str,
+            magazine_size: int,
+            fire_sounds: List[str],
+            reload_sound: Optional[str | list[str]] = None,
     ) -> WeaponBehavior:
         builder = BehaviorBuilder(weapon=weapon, magazine_size=magazine_size, initial_state="idle")
 
@@ -50,7 +49,7 @@ class WeaponDirector:
                 play_sound_random(fire_sounds),
                 emit_shot(),
                 flash_muzzle(),
-                consume_ammo(1),
+                consume_ammo(1 if magazine_size else 0),
             ],
         )
 
@@ -86,13 +85,13 @@ class WeaponDirector:
         return builder.build()
 
     def build_burst(
-        self,
-        weapon: str,
-        magazine_size: int,
-        fire_sounds: List[str],
-        reload_sound: Optional[str] = None,
-        burst_count: int = 3,
-        step_delay_ms: int = 80,
+            self,
+            weapon: str,
+            magazine_size: int,
+            fire_sounds: List[str],
+            reload_sound: Optional[str] = None,
+            burst_count: int = 3,
+            step_delay_ms: int = 80,
     ) -> WeaponBehavior:
         if burst_count < 1:
             raise ValueError("burst_count must be >= 1")
@@ -121,12 +120,12 @@ class WeaponDirector:
         builder.state("idle") \
             .on_enter(set_light(solid_light(self.lights.idle, 120))) \
             .transition(
-                "trigger_pressed",
-                "burst_1",
-                [run_sequence("burst_shot")] + (
-                    [schedule_event("burst_step_2", step_delay_ms)] if burst_count > 1 else []
-                ),
-            ) \
+            "trigger_pressed",
+            "burst_1",
+            [run_sequence("burst_shot")] + (
+                [schedule_event("burst_step_2", step_delay_ms)] if burst_count > 1 else []
+            ),
+        ) \
             .transition("ammo_empty", "empty", []) \
             .transition("reload", "reloading", [run_sequence("reload_fx")] if reload_sound else []) \
             .done()
@@ -165,7 +164,7 @@ class WeaponDirector:
             final_state = builder.behavior.states["burst_{0}".format(burst_count - 1)]
             final_transition = final_state.transitions[0]
             final_transition.target = "idle"
-        
+
         builder.state("empty") \
             .on_enter(set_light(pulse_light(self.lights.empty, 180, 220))) \
             .transition("reload_complete", "idle", []) \
@@ -179,12 +178,12 @@ class WeaponDirector:
         return builder.build()
 
     def build_full_auto(
-        self,
-        weapon: str,
-        magazine_size: int,
-        fire_sounds: List[str],
-        reload_sound: Optional[str] = None,
-        fire_interval_ms: int = 60,
+            self,
+            weapon: str,
+            magazine_size: int,
+            fire_sounds: List[str],
+            reload_sound: Optional[str] = None,
+            fire_interval_ms: int = 60,
     ) -> WeaponBehavior:
         builder = BehaviorBuilder(weapon=weapon, magazine_size=magazine_size, initial_state="idle")
 
@@ -210,10 +209,10 @@ class WeaponDirector:
         builder.state("idle") \
             .on_enter(set_light(solid_light(self.lights.idle, 120))) \
             .transition(
-                "trigger_pressed",
-                "auto_firing",
-                [run_sequence("auto_shot"), schedule_event("auto_step", fire_interval_ms)],
-            ) \
+            "trigger_pressed",
+            "auto_firing",
+            [run_sequence("auto_shot"), schedule_event("auto_step", fire_interval_ms)],
+        ) \
             .transition("ammo_empty", "empty", []) \
             .transition("reload", "reloading", [run_sequence("reload_fx")] if reload_sound else []) \
             .done()
@@ -228,10 +227,10 @@ class WeaponDirector:
 
         builder.state("auto_wait") \
             .transition(
-                "trigger_held",
-                "auto_firing",
-                [run_sequence("auto_shot"), schedule_event("auto_step", fire_interval_ms)],
-            ) \
+            "trigger_held",
+            "auto_firing",
+            [run_sequence("auto_shot"), schedule_event("auto_step", fire_interval_ms)],
+        ) \
             .transition("trigger_released", "idle", []) \
             .transition("ammo_empty", "empty", []) \
             .transition("reload", "reloading", [run_sequence("reload_fx")] if reload_sound else []) \
@@ -250,16 +249,16 @@ class WeaponDirector:
         return builder.build()
 
     def build_charge_shot(
-        self,
-        weapon: str,
-        magazine_size: int,
-        charge_start_sound: str,
-        charge_loop_sound: str,
-        charge_fire_sounds: List[str],
-        charge_cancel_sound: Optional[str] = None,
-        charge_complete_sound: Optional[str] = None,
-        reload_sound: Optional[str] = None,
-        charge_time_ms: int = 800,
+            self,
+            weapon: str,
+            magazine_size: int,
+            charge_start_sound: str,
+            charge_loop_sound: str,
+            charge_fire_sounds: List[str],
+            charge_cancel_sound: Optional[str] = None,
+            charge_complete_sound: Optional[str] = None,
+            reload_sound: Optional[str] = None,
+            charge_time_ms: int = 800,
     ) -> WeaponBehavior:
         builder = BehaviorBuilder(weapon=weapon, magazine_size=magazine_size, initial_state="idle")
 
@@ -292,10 +291,11 @@ class WeaponDirector:
         builder.state("idle") \
             .on_enter(set_light(solid_light(self.lights.idle, 120))) \
             .transition(
-                "trigger_pressed",
-                "charging",
-                [run_sequence("charge_start"), run_sequence("charge_loop"), schedule_event("charge_complete", charge_time_ms)],
-            ) \
+            "trigger_pressed",
+            "charging",
+            [run_sequence("charge_start"), run_sequence("charge_loop"),
+             schedule_event("charge_complete", charge_time_ms)],
+        ) \
             .transition("ammo_empty", "empty", []) \
             .transition("reload", "reloading", [run_sequence("reload_fx")] if reload_sound else []) \
             .done()
@@ -303,15 +303,15 @@ class WeaponDirector:
         builder.state("charging") \
             .on_enter(set_light(pulse_light(self.lights.firing, 180, 120))) \
             .transition(
-                "charge_complete",
-                "charged",
-                [run_sequence("charge_complete_fx")] if charge_complete_sound else [],
-            ) \
+            "charge_complete",
+            "charged",
+            [run_sequence("charge_complete_fx")] if charge_complete_sound else [],
+        ) \
             .transition(
-                "trigger_released",
-                "idle",
-                [run_sequence("charge_cancel")] if charge_cancel_sound else [stop_sound()],
-            ) \
+            "trigger_released",
+            "idle",
+            [run_sequence("charge_cancel")] if charge_cancel_sound else [stop_sound()],
+        ) \
             .transition("reload", "reloading", [stop_sound()] + ([run_sequence("reload_fx")] if reload_sound else [])) \
             .done()
 
@@ -334,12 +334,12 @@ class WeaponDirector:
         return builder.build()
 
     def build_chainsaw(
-        self,
-        weapon: str,
-        idle_sound: str,
-        working_sound: str,
-        end_sound: str,
-        end_duration_ms: int = 800,
+            self,
+            weapon: str,
+            idle_sound: str,
+            working_sound: str,
+            end_sound: str,
+            end_duration_ms: int = 800,
     ) -> WeaponBehavior:
         builder = BehaviorBuilder(weapon=weapon, magazine_size=1, initial_state="idle")
 
@@ -349,9 +349,9 @@ class WeaponDirector:
 
         builder.state("idle") \
             .on_enter(
-                set_light(solid_light((255, 160, 0), 180)),
-                run_sequence("idle_sound"),
-            ) \
+            set_light(solid_light((255, 160, 0), 180)),
+            run_sequence("idle_sound"),
+        ) \
             .on_exit(stop_sound()) \
             .transition("trigger_pressed", "working", [run_sequence("working_sound")]) \
             .done()
@@ -364,9 +364,9 @@ class WeaponDirector:
 
         builder.state("ending") \
             .on_enter(
-                set_light(solid_light((80, 0, 0), 30)),
-                schedule_event("return_to_idle", end_duration_ms),
-            ) \
+            set_light(solid_light((80, 0, 0), 30)),
+            schedule_event("return_to_idle", end_duration_ms),
+        ) \
             .transition("return_to_idle", "idle", []) \
             .transition("trigger_pressed", "working", [run_sequence("working_sound")]) \
             .done()
@@ -374,13 +374,13 @@ class WeaponDirector:
         return builder.build()
 
     def build_random_semi_auto(
-        self,
-        weapon: str,
-        fire_sounds: List[str],
-        reload_sound: str = None,
-        empty_sound: str = None,
-        equip_sound: str = None,
-        num_shots: int = None,
+            self,
+            weapon: str,
+            fire_sounds: List[str],
+            reload_sound: str = None,
+            empty_sound: str = None,
+            equip_sound: str = None,
+            num_shots: int = None,
     ) -> WeaponBehavior:
         if num_shots is None:
             num_shots = len(fire_sounds)
@@ -391,13 +391,11 @@ class WeaponDirector:
         builder = BehaviorBuilder(weapon=weapon, magazine_size=num_shots, initial_state=f"equip")
 
         equip_sequence = [
-                set_light(solid_light((0, 255, 255), 120)),
-            ]
+            set_light(solid_light((0, 255, 255), 120)),
+            schedule_event("idle", 500)
+        ]
         if equip_sound:
             equip_sequence.insert(0, play_sound(equip_sound))
-
-        equip_sequence.append(schedule_event(f"shot_{num_shots}", 500))
-        builder.sequence("equip", equip_sequence)
 
         builder.sequence(
             "fire_sounds",
@@ -426,24 +424,34 @@ class WeaponDirector:
 
         builder.sequence("reload_fx", reload_sequence)
 
-        shots = [(f"shots_{i}", "fire_sounds") for i in range(num_shots, 0, -1)]
+        shots = [(f"shot_{i}", "fire_sounds") for i in range(num_shots, 0, -1)]
         empty_state = ("empty", "empty_sound") if empty_sound else shots[-1]
         shots[-1] = empty_state
 
+        builder.state("equip") \
+            .on_enter(*equip_sequence) \
+            .transition("idle", f"idle", []) \
+            .done()
+
+        builder.state("idle") \
+            .transition("trigger_pressed", f"shot_{num_shots}", [run_sequence("fire_sounds")]) \
+            .transition("reload", "reloading", [run_sequence("reload_fx")]) \
+            .done()
+
         for i, (state, sound) in enumerate(shots):
             if i + 1 < len(shots):
-                next_state, next_sound = shots[i+1]
+                next_state, next_sound = shots[i + 1]
             else:
                 next_state, next_sound = empty_state
 
             builder.state(state) \
-            .on_enter(set_light(solid_light((255, 160 - i * 40, 0), 180))) \
-            .transition("trigger_pressed", next_state, [run_sequence(next_sound)]) \
-            .transition("reload", "reloading", [run_sequence("reload_fx")]) \
-            .done()
+                .on_enter(set_light(solid_light((255, 160 - i * 40, 0), 180))) \
+                .transition("trigger_pressed", next_state, [run_sequence(next_sound)]) \
+                .transition("reload", "reloading", [run_sequence("reload_fx")]) \
+                .done()
 
         builder.state("reloading") \
-            .transition("reload_complete", shots[0][0], []) \
+            .transition("reload_complete", "idle", []) \
             .done()
 
         return builder.build()

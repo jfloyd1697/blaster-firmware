@@ -20,9 +20,14 @@ public:
     explicit EspSdTextResourceLoader(IDebug *debug): ITextResourceLoader(debug) {};
 
     std::string loadText(const std::string& path) override {
+        if (m_debug != nullptr) {
+            char buf[64];
+            snprintf(buf, sizeof(buf), "Free heap before play: %u", EspClass::getFreeHeap());
+            m_debug->log(buf);
+        }
         File file = SD.open(path.c_str(), FILE_READ);
         if (!file) {
-            debug->error("EspSdTextResourceLoader: failed to open: " + path);
+            m_debug->error("EspSdTextResourceLoader: failed to open: " + path);
         }
 
         String content;

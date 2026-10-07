@@ -1,6 +1,5 @@
-#include <string>
 #include <filesystem>
-#include <memory>
+#include <string>
 #include <windows.h>
 
 #include "core/debug/IDebug.h"
@@ -20,7 +19,7 @@ bool PCAudioBackend::begin() {
 void PCAudioBackend::update() {
 }
 
-void PCAudioBackend::playSound(const std::string &file, const bool loop) {
+void PCAudioBackend::playSound(const std::string &file, const bool loop, bool blocking) {
     if (m_debug != nullptr) {
         if (!std::filesystem::exists(file)) {
             m_debug->error("PCAudio: Sound file NOT FOUND: " + file);

@@ -1,35 +1,20 @@
-//
-// Created by user on 3/27/2026.
-//
-
-#ifndef BLASTERFIRMWARE_ILIGHTS_H
-#define BLASTERFIRMWARE_ILIGHTS_H
+#ifndef BLASTER_FIRMWARE_ILIGHTS_H
+#define BLASTER_FIRMWARE_ILIGHTS_H
 
 #pragma once
-#include <vector>
-#include <memory>
 
-#include "weapon_behavior/WeaponBehaviorTypes.h"
-
-namespace Animations {
-    class IAnimation;
+namespace weapon_behavior {
+struct LightPatternDef;
 }
-
-struct LED {
-    int r = 0, g = 0, b = 0;
-};
-
 
 class ILights {
 public:
     virtual ~ILights() = default;
 
+    virtual void setPattern(const weapon_behavior::LightPatternDef& pattern) = 0;
+    virtual void flashPattern(const weapon_behavior::LightPatternDef& pattern) = 0;
+    virtual void flash() = 0;
     virtual void update() = 0;
-    virtual void addAnimation(std::shared_ptr<Animations::IAnimation> anim) = 0;
-    virtual void setPattern(std::shared_ptr<weapon_behavior::LightPatternDef> anim) = 0;
-    [[nodiscard]] virtual const std::vector<LED>& getLEDs() const = 0;
-    virtual void flash();
 };
 
-
-#endif //BLASTERFIRMWARE_ILIGHTS_H
+#endif // BLASTER_FIRMWARE_ILIGHTS_H

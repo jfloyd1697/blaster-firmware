@@ -21,7 +21,6 @@ class Action:
         return files
 
 
-
 @dataclass
 class Transition:
     event: str
@@ -61,6 +60,21 @@ class WeaponBehavior:
     action_sequences: Dict[str, List[Action]] = field(default_factory=dict)
     states: Dict[str, State] = field(default_factory=dict)
     version: int = 1
+
+    def files(self) -> List[pathlib.Path]:
+        files = []
+        for actions in self.action_sequences.values():
+            for action in actions:
+                files.extend(action.files())
+        for state in self.states.values():
+            for action in state.on_enter:
+                files.extend(action.files())
+            for action in state.on_exit:
+                files.extend(action.files())
+            for transition in state.transitions:
+                for action in transition.actions:
+                    files.extend(action.files())
+        return files
 
     def to_dict(self) -> Dict[str, Any]:
         return {

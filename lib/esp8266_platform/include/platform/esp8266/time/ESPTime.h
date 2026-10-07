@@ -6,7 +6,7 @@
 #include "core/time/ITime.h"
 
 struct ESPTime : ITime {
-    uint64_t millis() const override {
+    [[nodiscard]] unsigned long millis() const override {
         return ::millis();
     }
 };

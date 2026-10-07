@@ -19,7 +19,7 @@ public:
 
     void update() override;
 
-    void playSound(const std::string &file, bool loop = false) override;
+    void playSound(const std::string &file, bool loop = false, bool blocking = false) override;
 
     void stop() override;
 

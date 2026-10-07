@@ -13,15 +13,13 @@
 
 class WeaponBehaviorController {
 public:
-    WeaponBehaviorController(const WeaponBehaviorDef &behavior, ShootContext context);
+    WeaponBehaviorController(const weapon_behavior::WeaponBehaviorDef& behavior, ShootContext context);
 
     void initialize();
-
     void update();
+    void handleEvent(const std::string& event);
 
-    void handleEvent(const std::string &event);
-
-    [[nodiscard]] const std::string &currentState() const;
+    [[nodiscard]] const std::string& currentState() const;
 
 private:
     struct ScheduledEvent {
@@ -29,31 +27,24 @@ private:
         std::uint64_t dueTimeMs = 0;
     };
 
-    void enterState(const std::string &stateName);
-
+    void enterState(const std::string& stateName);
     void exitState();
-
     void processPendingEvents();
-
     void processScheduledEvents();
 
-    void executeActions(const std::vector<ActionDef> &actions);
+    void executeActions(const std::vector<weapon_behavior::ActionDef>& actions);
+    void executeAction(const weapon_behavior::ActionDef& action);
+    void executeSequence(const std::string& name);
+    void scheduleEvent(const std::string& event, int delayMs);
 
-    void executeAction(const ActionDef &action);
-
-    void executeSequence(const std::string &name);
-
-    void scheduleEvent(const std::string &event, int delayMs);
-
-    [[nodiscard]] const StateDef *findState(const std::string &stateName) const;
-
-    [[nodiscard]] static const TransitionDef *findTransition(
-        const StateDef &state,
-        const std::string &event);
+    [[nodiscard]] const weapon_behavior::StateDef* findState(const std::string& stateName) const;
+    [[nodiscard]] const weapon_behavior::TransitionDef* findTransition(
+        const weapon_behavior::StateDef& state,
+        const std::string& event) const;
 
     [[nodiscard]] std::uint64_t nowMs() const;
 
-    const WeaponBehaviorDef &m_behavior;
+    const weapon_behavior::WeaponBehaviorDef& m_behavior;
     ShootContext m_context;
     std::string m_currentState;
     std::deque<std::string> m_pendingEvents;

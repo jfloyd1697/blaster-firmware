@@ -5,50 +5,50 @@
 
 #include <cstddef>
 #include <memory>
-#include <optional>
 #include <vector>
 
-#include "Platform.h"
+#include "core/Platform.h"
 #include "core/weapons/SoundBank.h"
-#include "core/weapons/WeaponProfile.h"
-#include "core/weapons/WeaponBehaviorController.h"
-#include "weapon_behavior/WeaponBehaviorTypes.h"
+
+class WeaponBehaviorController;
 
 class Blaster {
 public:
     Blaster(PlatformServices& services,
-            std::vector<SoundBank> banks);
-    ~Blaster() = default;
+            std::vector<WeaponBank> banks);
+    ~Blaster();
 
     bool update();
 
 protected:
     void handleWeaponSelectionInput();
-    void handleReloadInput() const;
-    void handleTriggerInput() const;
+    void handleReloadInput();
+    void handleTriggerInput();
 
     void selectNextWeapon();
     void selectPreviousWeapon();
     void reloadCurrentWeapon();
 
+    void selectNextBank();
+    void selectPreviousBank();
+
     void equipCurrentWeapon();
     void emitShot() const;
     void flashMuzzle() const;
 
+
     [[nodiscard]] bool shouldQuit() const;
-    [[nodiscard]] const WeaponProfile* currentWeapon() const;
+    [[nodiscard]] const WeaponEntry* currentWeapon() const;
 
 private:
     PlatformServices& m_services;
-    std::vector<SoundBank> m_banks;
+    std::vector<WeaponBank> m_banks;
 
     std::size_t m_currentBankIndex = 0;
     std::size_t m_currentWeaponIndex = 0;
-
-    const WeaponProfile* m_currentProfile = nullptr;
+    std::optional<weapon_behavior::WeaponBehaviorDef> m_currentBehavior;
     int m_currentAmmo = 0;
 
-    std::optional<WeaponBehaviorDef> m_behaviorDef;
     std::unique_ptr<WeaponBehaviorController> m_behaviorController;
 };
 

@@ -13,7 +13,7 @@ public:
 
     virtual void update() = 0;
 
-    virtual void playSound(const std::string &file, bool loop = false) = 0;
+    virtual void playSound(const std::string &file, bool loop, bool blocking) = 0;
 
     virtual void stop() = 0;
 };

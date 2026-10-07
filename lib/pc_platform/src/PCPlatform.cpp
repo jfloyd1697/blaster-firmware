@@ -24,7 +24,7 @@
 
 
 // ------------------------- PC Debug -------------------------
-struct PCDebug : public IDebug {
+struct PCDebug : IDebug {
     void log(const std::string &msg) override {
         std::cout << "[LOG] " << msg << std::endl;
     }
@@ -36,9 +36,9 @@ struct PCDebug : public IDebug {
 
 // ------------------------- PC Time -------------------------
 
-struct PCTime : public ITime {
-    uint64_t millis() const override {
-        auto now = std::chrono::steady_clock::now();
+struct PCTime : ITime {
+    unsigned long millis() const override {
+        const auto now = std::chrono::steady_clock::now();
         return std::chrono::duration_cast<std::chrono::milliseconds>(
                     now.time_since_epoch())
                 .count();
@@ -64,9 +64,7 @@ PlatformServices PCPlatformFactory::create() {
     }
 
     services.audio = std::move(audio);
-    services.text_loader = std::make_unique<PCTextResourceLoader>(services.debug.get());
-    services.weapon_loader = std::make_unique<IWeaponLoader>(services.text_loader.get());
-    services.assetRoot = "assets/"; // Default asset root
+    services.textLoader = std::make_unique<PCTextResourceLoader>(services.debug.get());
     return services;
 }
 

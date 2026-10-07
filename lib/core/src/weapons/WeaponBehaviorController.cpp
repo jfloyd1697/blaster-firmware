@@ -9,16 +9,16 @@
 #include "core/time/ITime.h"
 
 namespace {
-std::size_t randomIndex(const std::size_t count) {
-    if (count == 0) {
-        return 0;
+    std::size_t randomIndex(const std::size_t count) {
+        if (count == 0) {
+            return 0;
+        }
+        return static_cast<std::size_t>(std::rand()) % count;
     }
-    return static_cast<std::size_t>(std::rand()) % count;
-}
 }
 
 WeaponBehaviorController::WeaponBehaviorController(
-    const weapon_behavior::WeaponBehaviorDef& behavior,
+    const weapon_behavior::WeaponBehaviorDef &behavior,
     ShootContext context)
     : m_behavior(behavior),
       m_context(std::move(context)),
@@ -35,19 +35,19 @@ void WeaponBehaviorController::update() {
     processPendingEvents();
 }
 
-void WeaponBehaviorController::handleEvent(const std::string& event) {
+void WeaponBehaviorController::handleEvent(const std::string &event) {
     m_pendingEvents.push_back(event);
     processPendingEvents();
 }
 
-const std::string& WeaponBehaviorController::currentState() const {
+const std::string &WeaponBehaviorController::currentState() const {
     return m_currentState;
 }
 
-void WeaponBehaviorController::enterState(const std::string& stateName) {
-    const auto* state = findState(stateName);
+void WeaponBehaviorController::enterState(const std::string &stateName) {
+    const auto *state = findState(stateName);
     if (!state) {
-        throw std::runtime_error("WeaponBehaviorController: unknown state on enter: " + stateName);
+        m_context.debug->error("WeaponBehaviorController: unknown state on enter: " + stateName);
     }
 
     if (m_context.debug) {
@@ -58,9 +58,9 @@ void WeaponBehaviorController::enterState(const std::string& stateName) {
 }
 
 void WeaponBehaviorController::exitState() {
-    const auto* state = findState(m_currentState);
+    const auto *state = findState(m_currentState);
     if (!state) {
-        throw std::runtime_error("WeaponBehaviorController: unknown state on exit: " + m_currentState);
+        m_context.debug->error("WeaponBehaviorController: unknown state on exit: " + m_currentState);
     }
 
     executeActions(state->onExit);
@@ -77,13 +77,13 @@ void WeaponBehaviorController::processPendingEvents() {
         const std::string event = m_pendingEvents.front();
         m_pendingEvents.pop_front();
 
-        const auto* state = findState(m_currentState);
+        const auto *state = findState(m_currentState);
         if (!state) {
             m_isProcessingEvents = false;
-            throw std::runtime_error("WeaponBehaviorController: unknown current state: " + m_currentState);
+            m_context.debug->error("WeaponBehaviorController: unknown current state: " + m_currentState);
         }
 
-        const auto* transition = findTransition(*state, event);
+        const auto *transition = findTransition(*state, event);
         if (!transition) {
             continue;
         }
@@ -104,13 +104,12 @@ void WeaponBehaviorController::processPendingEvents() {
 
 void WeaponBehaviorController::processScheduledEvents() {
     const std::uint64_t now = nowMs();
-
     std::vector<std::string> readyEvents;
 
     auto it = std::remove_if(
         m_scheduledEvents.begin(),
         m_scheduledEvents.end(),
-        [&](const ScheduledEvent& scheduled) {
+        [&](const ScheduledEvent &scheduled) {
             if (scheduled.dueTimeMs <= now) {
                 readyEvents.push_back(scheduled.event);
                 return true;
@@ -120,32 +119,42 @@ void WeaponBehaviorController::processScheduledEvents() {
 
     m_scheduledEvents.erase(it, m_scheduledEvents.end());
 
-    for (const auto& event : readyEvents) {
+    for (const auto &event: readyEvents) {
         m_pendingEvents.push_back(event);
     }
 }
 
-void WeaponBehaviorController::executeActions(const std::vector<ActionDef>& actions) {
-    for (const auto& action : actions) {
+void WeaponBehaviorController::executeActions(const std::vector<weapon_behavior::ActionDef> &actions) {
+    for (const auto &action: actions) {
         executeAction(action);
     }
 }
 
-void WeaponBehaviorController::executeAction(const ActionDef& action) {
+void WeaponBehaviorController::executeAction(const weapon_behavior::ActionDef &action) {
     if (action.type == "play_sound") {
         if (m_context.playSound && action.sound.has_value()) {
-            m_context.playSound(*action.sound, action.loop.value_or(false));
+            m_context.playSound(
+                *action.sound,
+                action.loop.value_or(false),
+                action.blocking.value_or(false)
+            );
         }
         return;
     }
 
     if (action.type == "play_sound_random") {
         if (m_context.playRandomSound && !action.sounds.empty()) {
-            m_context.playRandomSound(action.sounds, action.loop.value_or(false));
+            m_context.playRandomSound(
+                action.sounds,
+                action.loop.value_or(false),
+                action.blocking.value_or(false)
+            );
         } else if (m_context.playSound && !action.sounds.empty()) {
             m_context.playSound(
                 action.sounds[randomIndex(action.sounds.size())],
-                action.loop.value_or(false));
+                action.loop.value_or(false),
+                action.blocking.value_or(false)
+            );
         }
         return;
     }
@@ -186,12 +195,11 @@ void WeaponBehaviorController::executeAction(const ActionDef& action) {
     }
 
     if (action.type == "consume_ammo") {
-        if (m_context.ammo && action.amount.has_value()) {
+        if (m_context.ammo && action.amount.has_value() && *m_context.ammo >= 0) {
             *m_context.ammo -= *action.amount;
             if (*m_context.ammo < 0) {
                 *m_context.ammo = 0;
             }
-
             if (*m_context.ammo == 0 && m_context.emitBehaviorEvent) {
                 m_context.emitBehaviorEvent("ammo_empty");
             }
@@ -220,26 +228,23 @@ void WeaponBehaviorController::executeAction(const ActionDef& action) {
         return;
     }
 
-    throw std::runtime_error("WeaponBehaviorController: unknown action type: " + action.type);
+    m_context.debug->error("WeaponBehaviorController: unknown action type: " + action.type);
 }
 
-void WeaponBehaviorController::executeSequence(const std::string& name) {
+void WeaponBehaviorController::executeSequence(const std::string &name) {
     const auto it = m_behavior.actionSequences.find(name);
     if (it == m_behavior.actionSequences.end()) {
-        throw std::runtime_error("WeaponBehaviorController: unknown action sequence: " + name);
+        m_context.debug->error("WeaponBehaviorController: unknown action sequence: " + name);
     }
 
     executeActions(it->second);
 }
 
-void WeaponBehaviorController::scheduleEvent(const std::string& event, const int delayMs) {
-    m_scheduledEvents.push_back(ScheduledEvent{
-        event,
-        nowMs() + static_cast<std::uint64_t>(delayMs)
-    });
+void WeaponBehaviorController::scheduleEvent(const std::string &event, const int delayMs) {
+    m_scheduledEvents.push_back(ScheduledEvent{event, nowMs() + static_cast<std::uint64_t>(delayMs)});
 }
 
-const StateDef* WeaponBehaviorController::findState(const std::string& stateName) const {
+const weapon_behavior::StateDef *WeaponBehaviorController::findState(const std::string &stateName) const {
     const auto it = m_behavior.states.find(stateName);
     if (it == m_behavior.states.end()) {
         return nullptr;
@@ -247,10 +252,10 @@ const StateDef* WeaponBehaviorController::findState(const std::string& stateName
     return &it->second;
 }
 
-const TransitionDef* WeaponBehaviorController::findTransition(
-    const StateDef& state,
-    const std::string& event) {
-    for (const auto& transition : state.transitions) {
+const weapon_behavior::TransitionDef *WeaponBehaviorController::findTransition(
+    const weapon_behavior::StateDef &state,
+    const std::string &event) const {
+    for (const auto &transition: state.transitions) {
         if (transition.event == event) {
             return &transition;
         }

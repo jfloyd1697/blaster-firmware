@@ -9,22 +9,33 @@
 #include "core/time/ITime.h"
 
 #include "platform/esp8266/ESPPlatform.h"
+
+#include "audio/AudioEngine.h"
+#include "platform/esp8266/audio/BasicESPAudioBackend.h"
 #include "platform/esp8266/input/ESPInput.h"
-#include "platform/esp8266/audio/ESPAudioBackendFactory.h"
 #include "platform/esp8266/text_resource_loader/ESPTextResourceLoader.h"
 #include "platform/esp8266/time/ESPTime.h"
+
+
+#define LOG_RED   "\x1b[31m"
+#define LOG_YELLOW "\x1b[33m"
+#define LOG_RESET "\x1b[0m"
 
 namespace {
     //
     // ------------------------- ESP Debug -------------------------
     //
-    struct ESPDebug : public IDebug {
+    struct ESPDebug : IDebug {
         void log(const std::string &msg) override {
             Serial.println(("[LOG] " + msg).c_str());
         }
 
         void error(const std::string &msg) override {
-            Serial.println(("[ERROR] " + msg).c_str());
+            Serial.print("\x1b[31m");
+            Serial.print("[ERROR] ");
+            Serial.print(msg);
+            Serial.println("\x1b[0m");
+            Serial.println((LOG_RED + "[ERROR] " + msg + LOG_RESET).c_str());
         }
     };
 
@@ -64,37 +75,21 @@ PlatformServices ESPPlatformFactory::create() {
     SPI.begin();
 
     constexpr int sdCsPin = D1;
-    bool sdOk = SD.begin(sdCsPin);
+    const bool sdOk = SD.begin(sdCsPin);
 
-    // if (sdOk) {
-        // services.debug->log("ESPPlatform: SD init FAILED");
-    // } else {
-        // services.debug->log("ESPPlatform: SD init OK");
-    // }
-
-    // Audio
-    auto audio = createESPAudioEngine(
-        ESPAudioBackendType::Basic, // or Overlap / Basic
-        services.debug.get(),
-        services.time.get(),
-        2, // voices (keep low for ESP8266)
-        30 // overlap ms (for pseudo overlap)
+    services.audio = std::make_shared<AudioEngine>(
+        std::make_unique<BasicESPAudioBackend>(services.debug.get())
     );
 
-    if (!audio) {
-        services.debug->error("ESPPlatform: failed to create audio engine");
-    } else if (sdOk && !audio->begin()) {
-        services.debug->error("ESPPlatform: audio begin failed");
+    services.audio->begin();
+
+    services.textLoader = std::make_unique<EspSdTextResourceLoader>(services.debug.get());
+
+    if (sdOk) {
+        services.debug->log("ESPPlatform: SD init OK");
+    } else {
+        services.debug->log("ESPPlatform: SD init FAILED");
     }
-
-    services.audio = std::move(audio);
-
-    // Weapon loader
-    services.text_loader = std::make_unique<EspSdTextResourceLoader>(services.debug.get());
-    services.weapon_loader = std::make_unique<IWeaponLoader>(services.text_loader.get());
-
-    // Asset root
-    services.assetRoot = "/assets/";
 
     return services;
 }

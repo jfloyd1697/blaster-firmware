@@ -1,4 +1,5 @@
 import json
+import pathlib
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -13,9 +14,9 @@ class WeaponEntry:
     bank: str
     behavior: WeaponBehavior
 
-    @property
-    def relative_behavior_path(self) -> str:
-        return "{0}/behavior.json".format(self.weapon_id)
+    def behavior_path(self):
+        return pathlib.Path(self.bank) / self.weapon_id / 'behavior.json'
+
 
 
 @dataclass
@@ -38,10 +39,8 @@ class WeaponBuildSession:
         self.output_root.mkdir(parents=True, exist_ok=True)
 
         for entry in self.entries:
-            weapon_dir = self.output_root / entry.weapon_id
-            weapon_dir.mkdir(parents=True, exist_ok=True)
-
-            behavior_path = weapon_dir / "behavior.json"
+            behavior_path = (self.output_root /  entry.behavior_path())
+            behavior_path.parent.mkdir(parents=True, exist_ok=True)
             behavior_path.write_text(
                 json.dumps(entry.behavior.to_dict(), indent=2),
                 encoding="utf-8",
@@ -60,7 +59,7 @@ class WeaponBuildSession:
         for entry in self.entries:
             if entry.bank not in banks:
                 banks[entry.bank] = []
-            banks[entry.bank].append(entry.relative_behavior_path)
+            banks[entry.bank].append(entry.behavior_path().as_posix())
 
         return {
             "version": 1,

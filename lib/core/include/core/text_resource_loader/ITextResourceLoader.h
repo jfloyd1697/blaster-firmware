@@ -1,7 +1,3 @@
-//
-// Created by user on 4/2/2026.
-//
-
 #ifndef BLASTER_FIRMWARE_ITEXTRESOURCELOADER_H
 #define BLASTER_FIRMWARE_ITEXTRESOURCELOADER_H
 
@@ -9,15 +5,20 @@
 
 #include <string>
 
-struct IDebug;
+#include "core/debug/IDebug.h"
 
 class ITextResourceLoader {
 public:
-    explicit ITextResourceLoader(IDebug *debug) : debug(debug) {};
+    explicit ITextResourceLoader(IDebug *debug) : m_debug(debug) {
+    };
+
     virtual ~ITextResourceLoader() = default;
-    virtual std::string loadText(const std::string& path) = 0;
-protected:
-    IDebug *debug;
+
+    virtual std::string loadText(const std::string &path) = 0;
+
+    ITextResourceLoader() = default;
+
+    IDebug *m_debug;
 };
 
-#endif //BLASTER_FIRMWARE_ITEXTRESOURCELOADER_H
+#endif // BLASTER_FIRMWARE_ITEXTRESOURCELOADER_H

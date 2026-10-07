@@ -13,8 +13,6 @@
 #include <fstream>
 #include <sstream>
 
-#include "core/debug/IDebug.h"
-
 class PCTextResourceLoader : public ITextResourceLoader {
 public:
     explicit PCTextResourceLoader(IDebug *debug) : ITextResourceLoader(debug) {
@@ -22,12 +20,12 @@ public:
 
     std::string loadText(const std::string &path) override {
         if (!std::filesystem::exists(path)) {
-            debug->error("PCTextResourceLoader: file not found: " + path);
+            m_debug->error("PCTextResourceLoader: file not found: " + path);
         }
 
         const std::ifstream in(path, std::ios::in | std::ios::binary);
         if (!in) {
-            debug->error("PCTextResourceLoader: failed to open: " + path);
+            m_debug->error("PCTextResourceLoader: failed to open: " + path);
         }
 
         std::ostringstream ss;

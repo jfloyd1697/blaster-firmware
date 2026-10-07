@@ -1,13 +1,29 @@
 #ifndef BLASTER_FIRMWARE_SOUNDBANK_H
 #define BLASTER_FIRMWARE_SOUNDBANK_H
 
+#pragma once
+
+#include <string>
 #include <vector>
-#include "core/weapons/WeaponProfile.h"
+
+#include "weapon_behavior/WeaponBehaviorTypes.h"
 
 struct SoundBank {
     std::string name;
-    std::vector<WeaponProfile> weapons;
+    std::vector<weapon_behavior::WeaponBehaviorDef> weapons;
 };
 
 
-#endif //BLASTER_FIRMWARE_SOUNDBANK_H
+struct WeaponEntry {
+    std::string name;
+    std::string behaviorPath;
+    ;
+};
+
+
+struct WeaponBank {
+    std::string name;
+    std::vector<WeaponEntry> weapons;
+};
+
+#endif // BLASTER_FIRMWARE_SOUNDBANK_H

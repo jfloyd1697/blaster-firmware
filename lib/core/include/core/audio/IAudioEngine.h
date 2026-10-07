@@ -1,11 +1,8 @@
-//
-// Created by user on 3/26/2026.
-//
-
 #ifndef BLASTER_FIRMWARE_IAUDIOENGINE_H
 #define BLASTER_FIRMWARE_IAUDIOENGINE_H
 
 #pragma once
+
 #include <string>
 
 class IAudioEngine {
@@ -14,8 +11,8 @@ public:
 
     virtual bool begin() = 0;
     virtual void update() = 0;
-    virtual void playSound(const std::string& file, bool loop) = 0;
+    virtual void playSound(const std::string& file, bool loop, bool blocking) = 0;
     virtual void stop() = 0;
 };
 
-#endif //BLASTER_FIRMWARE_IAUDIOENGINE_H
+#endif // BLASTER_FIRMWARE_IAUDIOENGINE_H

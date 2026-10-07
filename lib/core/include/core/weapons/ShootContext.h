@@ -10,29 +10,26 @@
 class ITime;
 class IAudioEngine;
 struct IDebug;
-struct WeaponProfile;
-namespace weapon_behavior {
-    struct LightPatternDef;
-}
 
-using namespace weapon_behavior;
+namespace weapon_behavior {
+struct LightPatternDef;
+}
 
 struct ShootContext {
     ITime* time = nullptr;
     IAudioEngine* audio = nullptr;
     IDebug* debug = nullptr;
 
-    const WeaponProfile* profile = nullptr;
     int* ammo = nullptr;
 
     std::function<void()> emitShot;
     std::function<void()> flashMuzzle;
 
-    std::function<void(const LightPatternDef&)> setLight;
-    std::function<void(const LightPatternDef&)> flashLight;
+    std::function<void(const weapon_behavior::LightPatternDef&)> setLight;
+    std::function<void(const weapon_behavior::LightPatternDef&)> flashLight;
 
-    std::function<void(const std::string&, bool)> playSound;
-    std::function<void(const std::vector<std::string>&, bool)> playRandomSound;
+    std::function<void(const std::string&, bool, bool)> playSound;
+    std::function<void(const std::vector<std::string>&, bool, bool)> playRandomSound;
     std::function<void()> stopSound;
 
     std::function<void(const std::string&)> emitBehaviorEvent;

@@ -51,8 +51,28 @@ void BasicESPAudioBackend::update() {
     }
 }
 
-void BasicESPAudioBackend::playSound(const std::string &file, const bool loop) {
+void BasicESPAudioBackend::playSound(const std::string &file, const bool loop, const bool blocking) {
     stop();
+
+    std::string path = file;
+
+    for (char& ch : path) {
+        if (ch == '\\') {
+            ch = '/';
+        }
+    }
+    if (m_debug != nullptr) {
+        char buf[64];
+        snprintf(buf, sizeof(buf), "Free heap before play: %u", EspClass::getFreeHeap());
+        m_debug->log(buf);
+    }
+
+    //
+    // if (path.rfind("assets/", 0) == 0) {
+    //     path = "/" + path.substr(7);
+    // } else if (!path.empty() && path[0] != '/') {
+    //     path = "/" + path;
+    // }
 
     if (m_out == nullptr) {
         if (m_debug != nullptr) {
@@ -61,22 +81,22 @@ void BasicESPAudioBackend::playSound(const std::string &file, const bool loop) {
         return;
     }
 
-    if (!SD.exists(file.c_str())) {
+    if (!SD.exists(path.c_str())) {
         if (m_debug != nullptr) {
-            m_debug->error("BasicESPAudioBackend: file does not exist: " + file);
+            m_debug->error("BasicESPAudioBackend: file does not exist: " + path);
         }
         return;
     }
 
-    m_file = new AudioFileSourceSD(file.c_str());
+    m_file = new AudioFileSourceSD(path.c_str());
     if (m_file == nullptr || !m_file->isOpen()) {
         if (m_debug != nullptr) {
-            m_debug->error("BasicESPAudioBackend: failed to open " + file);
+            m_debug->error("BasicESPAudioBackend: failed to open " + path);
         }
         stop();
         return;
     }
-
+    m_debug->log("BasicESPAudioBackend: opened " + path);
     m_wav = new AudioGeneratorWAV();
     if (m_wav == nullptr) {
         if (m_debug != nullptr) {
@@ -88,14 +108,14 @@ void BasicESPAudioBackend::playSound(const std::string &file, const bool loop) {
 
     if (!m_wav->begin(m_file, m_out)) {
         if (m_debug != nullptr) {
-            m_debug->error("BasicESPAudioBackend: failed to start WAV " + file);
+            m_debug->error("BasicESPAudioBackend: failed to start WAV " + path);
         }
         stop();
         return;
     }
 
     if (m_debug != nullptr) {
-        m_debug->log("BasicESPAudioBackend: playing " + file);
+        m_debug->log("BasicESPAudioBackend: playing " + path);
     }
 }
 

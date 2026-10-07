@@ -1,0 +1,12 @@
+{
+  "name": "teensy_platform",
+  "version": "1.0.0",
+  "description": "Teensy 4.x platform layer for blaster firmware",
+  "keywords": ["teensy", "audio", "lights", "platform"],
+  "build": {
+    "includeDir": "include",
+    "srcDir": "src"
+  },
+  "frameworks": ["arduino"],
+  "platforms": ["teensy"]
+}

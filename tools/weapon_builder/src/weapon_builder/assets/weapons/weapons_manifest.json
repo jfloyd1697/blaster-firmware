@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "banks": [
+    {
+      "name": "Blaster",
+      "weapons": [
+        "Blaster/atst-chinguns-online-audio-converter/behavior.json",
+        "Blaster/battle-droid-blaster/behavior.json",
+        "Blaster/blast-2/behavior.json",
+        "Blaster/blast-3/behavior.json",
+        "Blaster/blaster-ligero/behavior.json",
+        "Blaster/blasterpistol1/behavior.json",
+        "Blaster/boba-fetts-blaster/behavior.json",
+        "Blaster/clone-blaster/behavior.json",
+        "Blaster/clone-commando-blaster/behavior.json",
+        "Blaster/droideka-blaster/behavior.json",
+        "Blaster/e-11/behavior.json",
+        "Blaster/fleet-trooper-blaster/behavior.json",
+        "Blaster/jango-fett-blaster-1/behavior.json",
+        "Blaster/lego-star-wars-droid-trifighter-blaster1/behavior.json",
+        "Blaster/lego-star-wars-droid-trifighter-blaster2/behavior.json",
+        "Blaster/lego-star-wars-leia-blaster/behavior.json",
+        "Blaster/lego-star-wars-tie-fighter-blaster2/behavior.json",
+        "Blaster/lego-star-wars-y-wing-blaster/behavior.json",
+        "Blaster/naboo-royal-blaster/behavior.json",
+        "Blaster/probe-droid-blaster/behavior.json",
+        "Blaster/sandtrooper-blaster/behavior.json",
+        "Blaster/scout-blaster/behavior.json",
+        "Blaster/stormtrooper-blaster-2_DofYccb/behavior.json",
+        "Blaster/tie-blaster-cannon/behavior.json",
+        "Blaster/tie-fighter-fire-1/behavior.json",
+        "Blaster/w-dl-44-blaster-pistol/behavior.json",
+        "Blaster/w-e-11-blaster-rifle/behavior.json",
+        "Blaster/walker-blaster/behavior.json"
+      ]
+    },
+    {
+      "name": "Fart",
+      "weapons": [
+        "Fart/basic_fart/behavior.json",
+        "Fart/dry-fart/behavior.json",
+        "Fart/fart-with-extra-reverb/behavior.json",
+        "Fart/farth-vader/behavior.json",
+        "Fart/nanofartv2/behavior.json",
+        "Fart/nuclear-fart-1/behavior.json",
+        "Fart/wet-fart-meme/behavior.json",
+        "Fart/wet-fart_1/behavior.json"
+      ]
+    },
+    {
+      "name": "Default",
+      "weapons": [
+        "Default/slave_one/behavior.json",
+        "Default/sawn_off/behavior.json",
+        "Default/shotgun/behavior.json"
+      ]
+    },
+    {
+      "name": "SciFi",
+      "weapons": [
+        "SciFi/charge_cannon/behavior.json",
+        "SciFi/super_metroid/behavior.json",
+        "SciFi/shinespark/behavior.json"
+      ]
+    },
+    {
+      "name": "Tools",
+      "weapons": [
+        "Tools/chainsaw/behavior.json"
+      ]
+    },
+    {
+      "name": "Characters",
+      "weapons": [
+        "Characters/anakin_hurt/behavior.json",
+        "Characters/padme_hurt/behavior.json",
+        "Characters/c3p0_hurt/behavior.json",
+        "Characters/maul_hurt/behavior.json",
+        "Characters/obiwan_hurt/behavior.json",
+        "Characters/ani_hurt/behavior.json",
+        "Characters/jarjar_hurt/behavior.json",
+        "Characters/wookie_hurt/behavior.json",
+        "Characters/true_jedi/behavior.json"
+      ]
+    }
+  ]
+}

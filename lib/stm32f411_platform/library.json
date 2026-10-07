@@ -1,0 +1,12 @@
+{
+  "name": "stm32f411_platform",
+  "version": "1.0.0",
+  "description": "STM32F411CE platform layer for blaster firmware",
+  "keywords": ["stm32", "stm32f411", "audio", "ws2812", "platform"],
+  "build": {
+    "includeDir": "include",
+    "srcDir": "src"
+  },
+  "frameworks": ["arduino"],
+  "platforms": ["ststm32"]
+}

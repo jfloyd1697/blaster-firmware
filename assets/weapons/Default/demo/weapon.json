@@ -1,0 +1,61 @@
+{
+  "format": "weapon_fsm_runtime_v1",
+  "version": 1,
+  "initial_state": "ready",
+  "variables": {
+    "ammo": 5,
+    "mag_capacity": 5
+  },
+  "clips": {
+    "fire": {
+      "path": "assets/audio/shotgun/12_sound_shotgunFire.wav",
+      "preload": true
+    }
+  },
+  "clip_sets": {},
+  "audio_effects": {},
+  "light_sequences": {
+    "muzzle": {
+      "path": "assets/weapons/Default/demo/lights/muzzle.json",
+      "preload": true
+    }
+  },
+  "states": [
+    {
+      "id": "ready",
+      "label": "Ready",
+      "on_entry": [],
+      "on_exit": []
+    },
+    {
+      "id": "firing",
+      "label": "Firing",
+      "on_entry": [
+        {"type": "play_audio", "clip": "fire", "mode": "once", "interrupt": "interrupt"},
+        {"type": "play_light", "sequence": "muzzle", "mode": "once"},
+        {"type": "adjust_ammo", "delta": -1},
+        {"type": "schedule_event", "event": "fire_done", "delay_ms": 80}
+      ],
+      "on_exit": []
+    }
+  ],
+  "transitions": [
+    {
+      "id": "fire",
+      "source": "ready",
+      "trigger": "trigger_pressed",
+      "target": "firing",
+      "guard": {"var_gt": {"name": "ammo", "value": 0}},
+      "actions": [],
+      "internal": false
+    },
+    {
+      "id": "done",
+      "source": "firing",
+      "trigger": "fire_done",
+      "target": "ready",
+      "actions": [],
+      "internal": false
+    }
+  ]
+}

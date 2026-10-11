@@ -12,7 +12,6 @@ target_include_directories(teensy_platform
 target_link_libraries(teensy_platform
         PUBLIC
         core
-        audio
 )
 
 target_compile_definitions(teensy_platform

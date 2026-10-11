@@ -7,7 +7,7 @@
 
 #include <string>
 
-#include "audio/IAudioBackend.h"
+#include "core/audio/IAudioBackend.h"
 
 struct IDebug;
 
@@ -18,6 +18,7 @@ public:
     bool begin() override;
     void update() override;
     void playSound(const std::string& file, bool loop, bool blocking) override;
+    bool playTone(std::uint32_t frequencyHz, std::uint32_t durationMs) override;
     void stop() override;
 
 private:
@@ -29,11 +30,20 @@ private:
     std::string m_currentFile;
     bool m_loop = false;
     bool m_active = false;
+    bool m_toneActive = false;
+    std::uint32_t m_toneEndMs = 0;
 
+    AudioSynthWaveformSine m_tone;
     AudioPlaySdWav m_player;
+    AudioMixer4 m_leftMixer;
+    AudioMixer4 m_rightMixer;
     AudioOutputI2S m_output;
     AudioConnection m_leftConnection;
     AudioConnection m_rightConnection;
+    AudioConnection m_toneLeftConnection;
+    AudioConnection m_toneRightConnection;
+    AudioConnection m_leftOutputConnection;
+    AudioConnection m_rightOutputConnection;
     AudioControlSGTL5000 m_codec;
 };
 

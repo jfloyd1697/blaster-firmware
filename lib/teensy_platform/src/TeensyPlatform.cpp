@@ -7,11 +7,13 @@
 #include <memory>
 #include <string>
 
-#include "audio/AudioEngine.h"
+#include "core/audio/AudioEngine.h"
 #include "core/debug/IDebug.h"
+#include "core/lights/LightEngine.h"
+#include "core/storage/ResourceTreeDumper.h"
 #include "platform/teensy/audio/TeensyAudioBackend.h"
 #include "platform/teensy/input/TeensyInput.h"
-#include "platform/teensy/lights/TeensyLights.h"
+#include "platform/teensy/lights/TeensyLightBackend.h"
 #include "platform/teensy/text_resource_loader/TeensySdTextResourceLoader.h"
 #include "platform/teensy/time/TeensyTime.h"
 
@@ -38,8 +40,13 @@ PlatformServices TeensyPlatformFactory::create() {
     Serial.begin(115200);
 
     services.debug = std::make_shared<TeensyDebug>();
-    services.time = std::make_shared<TeensyTime>();
+    services.debug->log("TeensyPlatform: service startup begin");
 
+    services.debug->log("TeensyPlatform: starting time service");
+    services.time = std::make_shared<TeensyTime>();
+    services.debug->log("TeensyPlatform: time service ready");
+
+    services.debug->log("TeensyPlatform: starting input service");
     auto input = std::make_shared<TeensyInput>(
         TeensyInput::PinConfig{
             .trigger = kTriggerPin,
@@ -51,28 +58,44 @@ PlatformServices TeensyPlatformFactory::create() {
         services.time.get());
     input->begin();
     services.input = input;
+    services.debug->log("TeensyPlatform: input service ready");
 
+    services.debug->log("TeensyPlatform: starting storage service");
     SPI.begin();
     const bool sdOk = SD.begin(kAudioShieldSdCsPin);
     if (sdOk) {
         services.debug->log("TeensyPlatform: Audio Shield SD init OK");
+        services.debug->log("TeensyPlatform: storage service ready");
     } else {
         services.debug->error("TeensyPlatform: Audio Shield SD init FAILED");
+        services.debug->error("TeensyPlatform: storage service failed");
     }
 
+    services.debug->log("TeensyPlatform: starting audio service");
     auto audio = std::make_shared<AudioEngine>(
         std::make_unique<TeensyAudioBackend>(services.debug.get(), kAudioVolume));
     if (!audio->begin()) {
-        services.debug->error("TeensyPlatform: audio begin failed");
+        services.debug->error("TeensyPlatform: audio service failed");
+    } else {
+        services.debug->log("TeensyPlatform: audio service ready");
     }
     services.audio = audio;
 
-    auto lights = std::make_shared<TeensyLights>();
+    services.debug->log("TeensyPlatform: starting lights service");
+    auto lights = std::make_shared<LightEngine>(
+        std::make_unique<TeensyLightBackend>(),
+        services.time.get());
     if (!lights->begin()) {
-        services.debug->error("TeensyPlatform: lights begin failed");
+        services.debug->error("TeensyPlatform: lights service failed");
+    } else {
+        services.debug->log("TeensyPlatform: lights service ready");
     }
     services.lights = lights;
 
     services.textLoader = std::make_shared<TeensySdTextResourceLoader>(services.debug.get());
+    if (sdOk) {
+        ResourceTreeDumper::dump(*services.textLoader, *services.debug);
+    }
+    services.debug->log("TeensyPlatform: service startup complete");
     return services;
 }

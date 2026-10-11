@@ -1,0 +1,8 @@
+{
+  "format": "weapon_fsm_led_sequence_v1",
+  "led_count": 1,
+  "frames": [
+    {"duration_ms": 60, "pixels": [{"index": 0, "color": "#ffffff", "intensity": 1.0}]},
+    {"duration_ms": 20, "pixels": []}
+  ]
+}

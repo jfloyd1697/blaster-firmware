@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "core/input/AnalogButtonLadder.h"
 #include "core/input/IInput.h"
 
 class TeensyInput : public IInput {
@@ -15,15 +16,13 @@ public:
         bool quitActiveLow = true;
     };
 
-    struct LadderConfig {
-        int nextMaximum = 100;
-        int previousMaximum = 200;
-        int reloadMaximum = 800;
-    };
-
-    TeensyInput(PinConfig pins, ITime* time, LadderConfig ladder = {});
+    TeensyInput(
+        PinConfig pins,
+        ITime* time,
+        AnalogButtonLadderConfig ladder = {});
 
     void begin() const;
+    [[nodiscard]] std::optional<int> rawLadderValue() const override;
 
 protected:
     [[nodiscard]] bool readRawButton(ButtonID button) const override;
@@ -33,7 +32,7 @@ private:
     [[nodiscard]] static bool readDigitalButton(int pin, bool activeLow);
 
     PinConfig m_pins;
-    LadderConfig m_ladder;
+    AnalogButtonLadder m_ladder;
 };
 
 #endif // BLASTER_TEENSY_INPUT_H

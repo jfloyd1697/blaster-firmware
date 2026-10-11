@@ -8,7 +8,7 @@
       {
         "type": "play_sound_random",
         "sounds": [
-          "assets\\audio\\fart\\nuclear-fart-1.wav"
+          "assets/audio/fart/nuclear-fart-1.wav"
         ]
       },
       {

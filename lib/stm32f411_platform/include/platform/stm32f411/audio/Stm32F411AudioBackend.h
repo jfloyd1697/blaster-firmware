@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <SD.h>
+#include <SdFat.h>
 #include <stm32f4xx_hal.h>
 
 #include <array>
@@ -11,7 +11,8 @@
 #include <cstdint>
 #include <string>
 
-#include "audio/IAudioBackend.h"
+#include "core/audio/IAudioBackend.h"
+#include "core/audio/ToneGenerator.h"
 #include "platform/stm32f411/board/Stm32F411BoardConfig.h"
 
 struct IDebug;
@@ -24,6 +25,7 @@ public:
     bool begin() override;
     void update() override;
     void playSound(const std::string& file, bool loop, bool blocking) override;
+    bool playTone(std::uint32_t frequencyHz, std::uint32_t durationMs) override;
     void stop() override;
 
     void onDmaHalfComplete();
@@ -46,8 +48,8 @@ private:
     [[nodiscard]] static std::string normalizePath(const std::string& path);
     bool openWav(const std::string& path);
     bool parseWavHeader(WavFormat& format);
-    bool configureI2s(std::uint32_t sampleRate);
     bool initializeHardware();
+    bool startBufferedPlayback();
     bool fillHalf(std::size_t halfIndex);
     std::size_t readPcmFrames(std::int16_t* destination, std::size_t frameCount);
     bool rewindAudioData();
@@ -55,7 +57,7 @@ private:
 
     Stm32F411I2sPins m_pins;
     IDebug* m_debug = nullptr;
-    File m_file;
+    File32 m_file;
     WavFormat m_format;
     std::string m_currentFile;
     std::array<std::int16_t, kBufferWordCount> m_dmaBuffer{};
@@ -65,6 +67,9 @@ private:
     volatile bool m_dmaError = false;
     volatile bool m_finishPending = false;
     volatile std::uint8_t m_halvesUntilStop = 0;
+    ToneGenerator m_tone;
+    std::uint32_t m_toneFramesRemaining = 0;
+    bool m_toneActive = false;
     bool m_loop = false;
     bool m_active = false;
     bool m_sourceExhausted = false;

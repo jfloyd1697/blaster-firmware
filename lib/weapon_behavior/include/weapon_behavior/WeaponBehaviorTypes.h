@@ -4,12 +4,16 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace weapon_behavior {
+
+using RuntimeValue = std::variant<std::monostate, bool, std::int64_t, double, std::string>;
 
 enum class LightPatternMode {
     Solid,
@@ -34,43 +38,93 @@ struct LightPatternDef {
     std::vector<LightStepDef> steps;
 };
 
-struct ActionDef {
-    std::string type;
-
-    std::optional<std::string> sound;
-    std::vector<std::string> sounds;
-    std::optional<bool> loop;
-    std::optional<bool> blocking;
-
-    std::optional<LightPatternDef> pattern;
-
-    std::optional<std::string> event;
-    std::optional<std::string> name;
-
-    std::optional<int> amount;
-    std::optional<int> delayMs;
-    std::optional<int> blockMs;
+struct VariableComparisonDef {
+    std::string name;
+    std::optional<RuntimeValue> value;
+    std::optional<std::string> valueFromVar;
 };
 
-struct TransitionDef {
-    std::string event;
-    std::string target;
-    std::vector<ActionDef> actions;
+struct GuardDef {
+    std::vector<GuardDef> all;
+    std::vector<GuardDef> any;
+    std::optional<bool> triggerPressed;
+    std::optional<VariableComparisonDef> varEq;
+    std::optional<VariableComparisonDef> varGt;
+    std::optional<VariableComparisonDef> varGte;
+    std::optional<VariableComparisonDef> varLt;
+    std::optional<VariableComparisonDef> varLte;
+};
+
+struct ActionDef {
+    std::string type;
+    std::optional<std::string> clip;
+    std::vector<std::string> clips;
+    std::optional<std::string> mode;
+    std::optional<std::string> interrupt;
+    std::optional<std::string> effect;
+    std::optional<std::string> clipSet;
+    std::optional<std::string> sequence;
+    std::optional<std::string> name;
+    std::optional<RuntimeValue> value;
+    std::optional<std::string> valueFromVar;
+    std::optional<int> delta;
+    std::optional<std::string> event;
+    std::optional<int> delayMs;
+    std::optional<std::string> delayMsFromVar;
+    std::optional<double> chance;
+    std::optional<std::string> message;
+};
+
+struct ClipDef {
+    std::string path;
+    bool preload = true;
+};
+
+struct ClipSetDef {
+    std::vector<std::string> clips;
+    std::string mode = "random";
+};
+
+struct AudioEffectDef {
+    std::vector<std::string> clips;
+    std::string mode = "once";
+    std::string interrupt = "interrupt";
+    bool loop = false;
+    double gain = 1.0;
+};
+
+struct LightSequenceDef {
+    std::string path;
+    bool preload = true;
 };
 
 struct StateDef {
-    std::vector<ActionDef> onEnter;
+    std::string id;
+    std::string label;
+    std::vector<ActionDef> onEntry;
     std::vector<ActionDef> onExit;
-    std::vector<TransitionDef> transitions;
+};
+
+struct TransitionDef {
+    std::string id;
+    std::string source;
+    std::string trigger;
+    std::string target;
+    std::optional<GuardDef> guard;
+    std::vector<ActionDef> actions;
+    bool internal = false;
 };
 
 struct WeaponBehaviorDef {
-    int version = 1;
-    std::string weapon;
-    int magazineSize = 0;
-    std::string initialState;
-    std::unordered_map<std::string, std::vector<ActionDef>> actionSequences;
+    int formatVersion = 1;
+    std::string initialState = "ready";
+    std::unordered_map<std::string, RuntimeValue> variables;
     std::unordered_map<std::string, StateDef> states;
+    std::vector<TransitionDef> transitions;
+    std::unordered_map<std::string, ClipDef> clips;
+    std::unordered_map<std::string, ClipSetDef> clipSets;
+    std::unordered_map<std::string, AudioEffectDef> audioEffects;
+    std::unordered_map<std::string, LightSequenceDef> lightSequences;
 };
 
 } // namespace weapon_behavior

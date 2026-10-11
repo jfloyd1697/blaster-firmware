@@ -9,17 +9,17 @@ Both use the same external peripherals and pin allocation so the blaster harness
 
 ## MAX98357A audio
 
-The STM32 backend drives the MAX98357A with SPI3 in I2S master-transmit mode and DMA.
+The STM32 backend drives the MAX98357A with SPI2 in I2S master-transmit mode and DMA.
 
 | STM32F411 | MAX98357A |
 | --- | --- |
-| PA4 | LRC / WS |
-| PC10 | BCLK |
-| PC12 | DIN |
+| PB12 | LRC / WS |
+| PB13 | BCLK |
+| PB15 | DIN |
 | 5 V | VIN |
 | GND | GND |
 
-The backend supports the WAV formats currently present in the project: 16-bit PCM, mono or stereo, at 22.05 kHz or 44.1 kHz. Mono files are duplicated to left and right channels.
+The STM32 I2S backend consumes **44.1 kHz, 16-bit PCM WAV** (mono or stereo). Mono files are duplicated to both output channels. The Weapon FSM Editor SD exporter uses ffmpeg to normalize authored sounds to **44.1 kHz mono PCM**; do not copy arbitrary WAV source files directly to the SD card.
 
 ## External microSD
 
@@ -27,14 +27,14 @@ A microSD module is required on the STM32 boards. Assets retain the same `assets
 
 | STM32F411 | microSD |
 | --- | --- |
-| PB12 | CS |
-| PB13 | SCK |
-| PB14 | MISO |
-| PB15 | MOSI |
+| PA4 | CS |
+| PA5 | SCK |
+| PA6 | MISO |
+| PA7 | MOSI |
 | 3.3 V | VCC |
 | GND | GND |
 
-The SD bus uses SPI2 pins and is separate from the SPI3 peripheral used as I2S audio.
+The SD bus uses SPI1 pins and is separate from the SPI2 peripheral used as I2S audio.
 
 ## WS2812 / NeoPixel lights
 

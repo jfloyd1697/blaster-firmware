@@ -8,7 +8,7 @@
       {
         "type": "play_sound_random",
         "sounds": [
-          "assets\\audio\\blaster\\battle-droid-blaster.wav"
+          "assets/audio/blaster/battle-droid-blaster.wav"
         ]
       },
       {

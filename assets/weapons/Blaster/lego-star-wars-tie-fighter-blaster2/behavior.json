@@ -8,7 +8,7 @@
       {
         "type": "play_sound_random",
         "sounds": [
-          "assets\\audio\\blaster\\lego-star-wars-tie-fighter-blaster2.wav"
+          "assets/audio/blaster/lego-star-wars-tie-fighter-blaster2.wav"
         ]
       },
       {

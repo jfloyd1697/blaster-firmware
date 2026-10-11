@@ -36,7 +36,6 @@ target_include_directories(esp8266_platform
 target_link_libraries(esp8266_platform
         PUBLIC
         core
-        audio
         esp8266_intellisense
 )
 

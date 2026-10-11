@@ -6,13 +6,14 @@
 #include <cstring>
 
 #include "core/debug/IDebug.h"
+#include "platform/stm32f411/storage/Stm32F411Sd.h"
 
 namespace {
-I2S_HandleTypeDef g_i2s3{};
-DMA_HandleTypeDef g_i2s3Dma{};
+I2S_HandleTypeDef g_i2s2{};
+DMA_HandleTypeDef g_i2s2Dma{};
 Stm32F411AudioBackend* g_activeAudio = nullptr;
 
-bool readExact(File& file, void* data, const std::size_t size) {
+bool readExact(File32& file, void* data, const std::size_t size) {
     return file.read(static_cast<std::uint8_t*>(data), size) == static_cast<int>(size);
 }
 
@@ -29,24 +30,24 @@ std::uint32_t readLe32(const std::uint8_t* data) {
 }
 }
 
-extern "C" void DMA1_Stream5_IRQHandler() {
-    HAL_DMA_IRQHandler(&g_i2s3Dma);
+extern "C" void DMA1_Stream4_IRQHandler() {
+    HAL_DMA_IRQHandler(&g_i2s2Dma);
 }
 
 extern "C" void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef* hi2s) {
-    if (hi2s->Instance == SPI3 && g_activeAudio != nullptr) {
+    if (hi2s->Instance == SPI2 && g_activeAudio != nullptr) {
         g_activeAudio->onDmaHalfComplete();
     }
 }
 
 extern "C" void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef* hi2s) {
-    if (hi2s->Instance == SPI3 && g_activeAudio != nullptr) {
+    if (hi2s->Instance == SPI2 && g_activeAudio != nullptr) {
         g_activeAudio->onDmaComplete();
     }
 }
 
 extern "C" void HAL_I2S_ErrorCallback(I2S_HandleTypeDef* hi2s) {
-    if (hi2s->Instance == SPI3 && g_activeAudio != nullptr) {
+    if (hi2s->Instance == SPI2 && g_activeAudio != nullptr) {
         g_activeAudio->onDmaError();
     }
 }
@@ -64,23 +65,23 @@ Stm32F411AudioBackend::~Stm32F411AudioBackend() {
 }
 
 bool Stm32F411AudioBackend::begin() {
-    if (m_pins.ws != PA4 || m_pins.bclk != PC10 || m_pins.data != PC12) {
+    if (m_pins.ws != PB12 || m_pins.bclk != PB13 || m_pins.data != PB15) {
         if (m_debug != nullptr) {
-            m_debug->error("Stm32F411AudioBackend: current HAL backend requires I2S3 PA4/PC10/PC12");
+            m_debug->error("Stm32F411AudioBackend: current HAL backend requires I2S2 PB12/PB13/PB15");
         }
         return false;
     }
 
     if (!initializeHardware()) {
         if (m_debug != nullptr) {
-            m_debug->error("Stm32F411AudioBackend: I2S3/DMA initialization failed");
+            m_debug->error("Stm32F411AudioBackend: I2S2/DMA initialization failed");
         }
         return false;
     }
 
     g_activeAudio = this;
     if (m_debug != nullptr) {
-        m_debug->log("Stm32F411AudioBackend: I2S3 DMA output initialized");
+        m_debug->log("Stm32F411AudioBackend: I2S2 DMA output initialized");
     }
     return true;
 }
@@ -124,32 +125,19 @@ void Stm32F411AudioBackend::playSound(const std::string& file, const bool loop, 
         return;
     }
 
-    if (!configureI2s(m_format.sampleRate)) {
+    // I2S2 was initialized at 44.1 kHz by begin(). Do not call HAL_I2S_Init
+    // again between clips: it can fail while the peripheral/DMA is active and
+    // was being incorrectly reported as an unsupported 44100 Hz file.
+    if (g_i2s2.State != HAL_I2S_STATE_READY) {
         if (m_debug != nullptr) {
-            m_debug->error("Stm32F411AudioBackend: unsupported sample rate " + std::to_string(m_format.sampleRate));
+            m_debug->error("Stm32F411AudioBackend: I2S2 is not ready for playback");
         }
         stop();
         return;
     }
 
-    m_dataBytesRead = 0;
-    m_sourceExhausted = false;
-    fillHalf(0);
-    fillHalf(1);
-
-    m_refillFirstHalf = false;
-    m_refillSecondHalf = false;
-    m_dmaError = false;
-    m_finishPending = false;
-    m_active = true;
-
-    if (HAL_I2S_Transmit_DMA(
-            &g_i2s3,
-            reinterpret_cast<std::uint16_t*>(m_dmaBuffer.data()),
-            static_cast<std::uint16_t>(m_dmaBuffer.size())) != HAL_OK) {
-        if (m_debug != nullptr) {
-            m_debug->error("Stm32F411AudioBackend: failed to start I2S DMA");
-        }
+    m_toneActive = false;
+    if (!startBufferedPlayback()) {
         stop();
         return;
     }
@@ -166,9 +154,65 @@ void Stm32F411AudioBackend::playSound(const std::string& file, const bool loop, 
     }
 }
 
+bool Stm32F411AudioBackend::playTone(const std::uint32_t frequencyHz,
+                                      const std::uint32_t durationMs) {
+    stop();
+    if (frequencyHz < 100u || frequencyHz > 10000u || durationMs == 0u || durationMs > 5000u ||
+        !m_tone.configure(frequencyHz, 44100u, 6000)) {
+        if (m_debug != nullptr) {
+            m_debug->error("Stm32F411AudioBackend: invalid diagnostic tone parameters");
+        }
+        return false;
+    }
+    if (g_i2s2.State != HAL_I2S_STATE_READY) {
+        if (m_debug != nullptr) {
+            m_debug->error("Stm32F411AudioBackend: I2S2 is not ready for tone playback");
+        }
+        return false;
+    }
+
+    m_toneActive = true;
+    m_toneFramesRemaining = static_cast<std::uint32_t>(
+        (static_cast<std::uint64_t>(44100u) * durationMs) / 1000u);
+    if (!startBufferedPlayback()) {
+        stop();
+        return false;
+    }
+    if (m_debug != nullptr) {
+        m_debug->log("Stm32F411AudioBackend: diagnostic tone " +
+                     std::to_string(frequencyHz) + " Hz for " +
+                     std::to_string(durationMs) + " ms");
+    }
+    return true;
+}
+
+bool Stm32F411AudioBackend::startBufferedPlayback() {
+    m_dataBytesRead = 0;
+    m_sourceExhausted = false;
+    m_halvesUntilStop = 0;
+    m_refillFirstHalf = false;
+    m_refillSecondHalf = false;
+    m_dmaError = false;
+    m_finishPending = false;
+    fillHalf(0);
+    fillHalf(1);
+    m_active = true;
+
+    if (HAL_I2S_Transmit_DMA(
+            &g_i2s2,
+            reinterpret_cast<std::uint16_t*>(m_dmaBuffer.data()),
+            static_cast<std::uint16_t>(m_dmaBuffer.size())) != HAL_OK) {
+        if (m_debug != nullptr) {
+            m_debug->error("Stm32F411AudioBackend: failed to start I2S DMA");
+        }
+        return false;
+    }
+    return true;
+}
+
 void Stm32F411AudioBackend::stop() {
-    if (g_i2s3.Instance != nullptr) {
-        HAL_I2S_DMAStop(&g_i2s3);
+    if (g_i2s2.Instance != nullptr) {
+        HAL_I2S_DMAStop(&g_i2s2);
     }
 
     if (m_file) {
@@ -177,6 +221,8 @@ void Stm32F411AudioBackend::stop() {
 
     m_currentFile.clear();
     m_loop = false;
+    m_toneActive = false;
+    m_toneFramesRemaining = 0;
     m_active = false;
     m_sourceExhausted = false;
     m_refillFirstHalf = false;
@@ -224,14 +270,7 @@ std::string Stm32F411AudioBackend::normalizePath(const std::string& path) {
 }
 
 bool Stm32F411AudioBackend::openWav(const std::string& path) {
-    if (!SD.exists(path.c_str())) {
-        if (m_debug != nullptr) {
-            m_debug->error("Stm32F411AudioBackend: file does not exist: " + path);
-        }
-        return false;
-    }
-
-    m_file = SD.open(path.c_str(), FILE_READ);
+    m_file = g_stm32Sd.open(path.c_str(), O_RDONLY);
     if (!m_file) {
         if (m_debug != nullptr) {
             m_debug->error("Stm32F411AudioBackend: failed to open " + path);
@@ -247,7 +286,21 @@ bool Stm32F411AudioBackend::openWav(const std::string& path) {
         return false;
     }
 
-    return m_file.seek(m_format.dataOffset);
+    // The SD exporter normalizes authored sounds to 44.1 kHz PCM. The
+    // STM32 I2S clock is configured for that rate; do not attempt to
+    // retune the peripheral for arbitrary source rates during playback.
+    if (m_format.sampleRate != 44100u) {
+        if (m_debug != nullptr) {
+            m_debug->error(
+                "Stm32F411AudioBackend: expected 44100 Hz PCM WAV, got " +
+                std::to_string(m_format.sampleRate) + " Hz: " + path +
+                ". Re-export the audio using weapon-fsm-export-sd.");
+        }
+        m_file.close();
+        return false;
+    }
+
+    return m_file.seekSet(m_format.dataOffset);
 }
 
 bool Stm32F411AudioBackend::parseWavHeader(WavFormat& format) {
@@ -267,7 +320,7 @@ bool Stm32F411AudioBackend::parseWavHeader(WavFormat& format) {
         }
 
         const std::uint32_t chunkSize = readLe32(chunkHeader + 4);
-        const std::uint32_t chunkDataOffset = m_file.position();
+        const std::uint32_t chunkDataOffset = static_cast<std::uint32_t>(m_file.curPosition());
 
         if (std::memcmp(chunkHeader, "fmt ", 4) == 0) {
             if (chunkSize < 16) {
@@ -292,24 +345,17 @@ bool Stm32F411AudioBackend::parseWavHeader(WavFormat& format) {
         }
 
         const std::uint32_t nextChunk = chunkDataOffset + chunkSize + (chunkSize & 1u);
-        if (!m_file.seek(nextChunk)) {
+        if (!m_file.seekSet(nextChunk)) {
             return false;
         }
     }
 
-    return haveFormat && haveData && (format.sampleRate == 22050u || format.sampleRate == 44100u);
-}
-
-bool Stm32F411AudioBackend::configureI2s(const std::uint32_t sampleRate) {
-    HAL_I2S_DMAStop(&g_i2s3);
-    g_i2s3.Init.AudioFreq = sampleRate;
-    return HAL_I2S_Init(&g_i2s3) == HAL_OK;
+    return haveFormat && haveData && format.sampleRate != 0u;
 }
 
 bool Stm32F411AudioBackend::initializeHardware() {
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_SPI3_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_SPI2_CLK_ENABLE();
     __HAL_RCC_DMA1_CLK_ENABLE();
 
     RCC_PeriphCLKInitTypeDef clocks{};
@@ -317,6 +363,7 @@ bool Stm32F411AudioBackend::initializeHardware() {
     clocks.PLLI2S.PLLI2SN = 271;
     clocks.PLLI2S.PLLI2SR = 2;
     if (HAL_RCCEx_PeriphCLKConfig(&clocks) != HAL_OK) {
+        if (m_debug) m_debug->error("Stm32F411AudioBackend: PLLI2S clock configuration failed");
         return false;
     }
 
@@ -324,46 +371,63 @@ bool Stm32F411AudioBackend::initializeHardware() {
     gpio.Mode = GPIO_MODE_AF_PP;
     gpio.Pull = GPIO_NOPULL;
     gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    gpio.Alternate = GPIO_AF6_SPI3;
+    gpio.Alternate = GPIO_AF5_SPI2;
 
-    gpio.Pin = GPIO_PIN_4;
-    HAL_GPIO_Init(GPIOA, &gpio);
-    gpio.Pin = GPIO_PIN_10 | GPIO_PIN_12;
-    HAL_GPIO_Init(GPIOC, &gpio);
+    gpio.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_15;
+    HAL_GPIO_Init(GPIOB, &gpio);
 
-    g_i2s3.Instance = SPI3;
-    g_i2s3.Init.Mode = I2S_MODE_MASTER_TX;
-    g_i2s3.Init.Standard = I2S_STANDARD_PHILIPS;
-    g_i2s3.Init.DataFormat = I2S_DATAFORMAT_16B;
-    g_i2s3.Init.MCLKOutput = I2S_MCLKOUTPUT_DISABLE;
-    g_i2s3.Init.AudioFreq = I2S_AUDIOFREQ_44K;
-    g_i2s3.Init.CPOL = I2S_CPOL_LOW;
-    g_i2s3.Init.ClockSource = I2S_CLOCK_PLL;
-    g_i2s3.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
+    g_i2s2.Instance = SPI2;
+    g_i2s2.Init.Mode = I2S_MODE_MASTER_TX;
+    g_i2s2.Init.Standard = I2S_STANDARD_PHILIPS;
+    g_i2s2.Init.DataFormat = I2S_DATAFORMAT_16B;
+    g_i2s2.Init.MCLKOutput = I2S_MCLKOUTPUT_DISABLE;
+    g_i2s2.Init.AudioFreq = I2S_AUDIOFREQ_44K;
+    g_i2s2.Init.CPOL = I2S_CPOL_LOW;
+    g_i2s2.Init.ClockSource = I2S_CLOCK_PLL;
+    g_i2s2.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
 
-    g_i2s3Dma.Instance = DMA1_Stream5;
-    g_i2s3Dma.Init.Channel = DMA_CHANNEL_0;
-    g_i2s3Dma.Init.Direction = DMA_MEMORY_TO_PERIPH;
-    g_i2s3Dma.Init.PeriphInc = DMA_PINC_DISABLE;
-    g_i2s3Dma.Init.MemInc = DMA_MINC_ENABLE;
-    g_i2s3Dma.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-    g_i2s3Dma.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-    g_i2s3Dma.Init.Mode = DMA_CIRCULAR;
-    g_i2s3Dma.Init.Priority = DMA_PRIORITY_VERY_HIGH;
-    g_i2s3Dma.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-    if (HAL_DMA_Init(&g_i2s3Dma) != HAL_OK) {
+    g_i2s2Dma.Instance = DMA1_Stream4;
+    g_i2s2Dma.Init.Channel = DMA_CHANNEL_0;
+    g_i2s2Dma.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    g_i2s2Dma.Init.PeriphInc = DMA_PINC_DISABLE;
+    g_i2s2Dma.Init.MemInc = DMA_MINC_ENABLE;
+    g_i2s2Dma.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+    g_i2s2Dma.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+    g_i2s2Dma.Init.Mode = DMA_CIRCULAR;
+    g_i2s2Dma.Init.Priority = DMA_PRIORITY_VERY_HIGH;
+    g_i2s2Dma.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    if (HAL_DMA_Init(&g_i2s2Dma) != HAL_OK) {
+        if (m_debug) m_debug->error("Stm32F411AudioBackend: DMA1 stream 4 init failed (error " +
+                                   std::to_string(g_i2s2Dma.ErrorCode) + ")");
         return false;
     }
 
-    __HAL_LINKDMA(&g_i2s3, hdmatx, g_i2s3Dma);
-    HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 1, 0);
-    HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
-    return HAL_I2S_Init(&g_i2s3) == HAL_OK;
+    __HAL_LINKDMA(&g_i2s2, hdmatx, g_i2s2Dma);
+    HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 1, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+    const HAL_StatusTypeDef i2sStatus = HAL_I2S_Init(&g_i2s2);
+    if (i2sStatus != HAL_OK && m_debug) {
+        m_debug->error("Stm32F411AudioBackend: HAL_I2S_Init failed (HAL " +
+                       std::to_string(static_cast<int>(i2sStatus)) + ", error " +
+                       std::to_string(g_i2s2.ErrorCode) + ")");
+    }
+    return i2sStatus == HAL_OK;
 }
 
 bool Stm32F411AudioBackend::fillHalf(const std::size_t halfIndex) {
     auto* destination = m_dmaBuffer.data() + halfIndex * kHalfWordCount;
-    const std::size_t framesRead = readPcmFrames(destination, kFramesPerHalf);
+    std::size_t framesRead = 0;
+    if (m_toneActive && !m_sourceExhausted) {
+        framesRead = std::min(kFramesPerHalf, static_cast<std::size_t>(m_toneFramesRemaining));
+        for (std::size_t index = 0; index < framesRead; ++index) {
+            const std::int16_t sample = m_tone.nextSample();
+            destination[index * 2] = sample;
+            destination[index * 2 + 1] = sample;
+        }
+        m_toneFramesRemaining -= static_cast<std::uint32_t>(framesRead);
+    } else if (!m_toneActive) {
+        framesRead = readPcmFrames(destination, kFramesPerHalf);
+    }
     if (framesRead < kFramesPerHalf) {
         std::fill(
             destination + framesRead * 2,
@@ -436,7 +500,7 @@ std::size_t Stm32F411AudioBackend::readPcmFrames(std::int16_t* destination, cons
 }
 
 bool Stm32F411AudioBackend::rewindAudioData() {
-    if (!m_file.seek(m_format.dataOffset)) {
+    if (!m_file.seekSet(m_format.dataOffset)) {
         return false;
     }
     m_dataBytesRead = 0;
@@ -446,11 +510,13 @@ bool Stm32F411AudioBackend::rewindAudioData() {
 }
 
 void Stm32F411AudioBackend::finishPlayback() {
-    HAL_I2S_DMAStop(&g_i2s3);
+    HAL_I2S_DMAStop(&g_i2s2);
     if (m_file) {
         m_file.close();
     }
     m_active = false;
+    m_toneActive = false;
+    m_toneFramesRemaining = 0;
     m_currentFile.clear();
     if (m_debug != nullptr) {
         m_debug->log("Stm32F411AudioBackend: playback finished");

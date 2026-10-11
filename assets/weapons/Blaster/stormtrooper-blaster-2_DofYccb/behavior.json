@@ -8,7 +8,7 @@
       {
         "type": "play_sound_random",
         "sounds": [
-          "assets\\audio\\blaster\\stormtrooper-blaster-2_DofYccb.wav"
+          "assets/audio/blaster/stormtrooper-blaster-2_DofYccb.wav"
         ]
       },
       {

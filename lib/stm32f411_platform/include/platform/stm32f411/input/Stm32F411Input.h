@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "core/input/AnalogButtonLadder.h"
 #include "core/input/IInput.h"
 #include "platform/stm32f411/board/Stm32F411BoardConfig.h"
 
@@ -12,6 +13,8 @@ public:
 
     void begin() const;
 
+    [[nodiscard]] std::optional<int> rawLadderValue() const override;
+
 protected:
     [[nodiscard]] bool readRawButton(ButtonID button) const override;
 
@@ -19,6 +22,7 @@ private:
     [[nodiscard]] int readLadderRaw() const;
 
     Stm32F411InputPins m_pins;
+    AnalogButtonLadder m_ladder;
 };
 
 #endif // BLASTER_STM32F411_INPUT_H

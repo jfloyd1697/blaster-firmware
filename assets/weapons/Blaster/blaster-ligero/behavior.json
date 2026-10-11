@@ -8,7 +8,7 @@
       {
         "type": "play_sound_random",
         "sounds": [
-          "assets\\audio\\blaster\\blaster-ligero.wav"
+          "assets/audio/blaster/blaster-ligero.wav"
         ]
       },
       {

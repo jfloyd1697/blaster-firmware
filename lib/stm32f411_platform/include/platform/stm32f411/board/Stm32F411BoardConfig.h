@@ -8,26 +8,27 @@
 #include <cstdint>
 #include <optional>
 
+
 struct Stm32F411SpiPins {
-    pin_size_t mosi;
-    pin_size_t miso;
-    pin_size_t sck;
-    pin_size_t cs;
+    std::uint32_t mosi;
+    std::uint32_t miso;
+    std::uint32_t sck;
+    std::uint32_t cs;
 };
 
 struct Stm32F411I2sPins {
-    pin_size_t ws;
-    pin_size_t bclk;
-    pin_size_t data;
+    std::uint32_t ws;
+    std::uint32_t bclk;
+    std::uint32_t data;
 };
 
 struct Stm32F411InputPins {
-    pin_size_t trigger;
-    pin_size_t ladder;
+    std::uint32_t trigger;
+    std::uint32_t ladder;
 };
 
 struct Stm32F411LightPins {
-    pin_size_t data;
+    std::uint32_t data;
     std::uint16_t ledCount;
 };
 
@@ -37,7 +38,7 @@ struct Stm32F411BoardConfig {
     Stm32F411I2sPins audio;
     Stm32F411InputPins input;
     Stm32F411LightPins lights;
-    std::optional<pin_size_t> statusLed;
+    std::optional<std::uint32_t> statusLed;
     bool statusLedActiveLow;
 };
 

@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "audio/IAudioBackend.h"
+#include "core/audio/IAudioBackend.h"
 
 struct IDebug;
 class AudioFileSourceSD;

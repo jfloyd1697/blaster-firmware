@@ -2,8 +2,10 @@
 #include <string>
 
 #include "core/Blaster.h"
+#include "core/FallbackMode.h"
 #include "core/Platform.h"
 #include "core/audio/IAudioEngine.h"
+#include "core/assets/AssetLayoutValidator.h"
 #include "core/debug/IDebug.h"
 #include "core/input/IInput.h"
 #include "core/lights/ILights.h"
@@ -31,6 +33,7 @@
 namespace {
     PlatformServices services;
     std::unique_ptr<Blaster> blaster;
+    std::unique_ptr<FallbackMode> fallbackMode;
     bool appInitialized = false;
 
     bool initializeApp() {
@@ -40,30 +43,53 @@ namespace {
 
         services.debug->log("App initialization starting");
 
-        const std::string weaponsManifestPath = "assets/weapons/weapons_manifest.json";
-        auto banks = WeaponLoader::loadBanks(*services.textLoader, *services.debug, weaponsManifestPath);
+        const std::string weaponsManifestPath = AssetLayoutValidator::DefaultManifestPath;
 
+        services.debug->log("App: validating asset layout");
+        const AssetLayoutReport assetReport = AssetLayoutValidator::validate(
+            *services.textLoader,
+            services.debug.get(),
+            weaponsManifestPath,
+            AssetValidationDepth::ReferencesOnly);
+        services.debug->log("App: asset layout validation complete");
+        if (!assetReport.ok) {
+            services.debug->error(
+                "Asset layout validation failed with " + std::to_string(assetReport.issues.size()) + " issue(s)");
+            for (const auto& issue : assetReport.issues) {
+                services.debug->error(issue.path + ": " + issue.message);
+            }
+            fallbackMode = std::make_unique<FallbackMode>(services);
+            fallbackMode->initialize();
+            return true;
+        }
+
+        services.debug->log(
+            "Asset layout valid: " + std::to_string(assetReport.bankCount) + " banks, " +
+            std::to_string(assetReport.weaponCount) + " weapons, " +
+            std::to_string(assetReport.soundFileCount) + " audio files, " +
+            std::to_string(assetReport.lightSequenceCount) + " light sequences");
+
+        services.debug->log("App: loading weapon banks");
+        auto banks = WeaponLoader::loadBanks(*services.textLoader, *services.debug, weaponsManifestPath);
+        services.debug->log("App: weapon bank loading complete");
         if (banks.empty()) {
-            services.debug->error("No sound banks found");
-            return false;
+            services.debug->error("No sound banks found; starting fallback mode");
+            fallbackMode = std::make_unique<FallbackMode>(services);
+            fallbackMode->initialize();
+            return true;
         }
 
         services.debug->log("Loaded bank count: " + std::to_string(banks.size()));
 
+        services.debug->log("App: constructing blaster");
         blaster = std::make_unique<Blaster>(services, banks);
+        services.debug->log("App: blaster constructed");
 
         services.debug->log("App initialization complete");
         return true;
     }
 
     bool tickApp() {
-        if (!blaster) {
-            if (services.debug) {
-                services.debug->error("tickApp: blaster not initialized");
-            }
-            return false;
-        }
-
         if (services.input) {
             services.input->update();
         }
@@ -76,7 +102,17 @@ namespace {
             services.lights->update();
         }
 
-        return blaster->update();
+        if (blaster) {
+            return blaster->update();
+        }
+        if (fallbackMode) {
+            return fallbackMode->update();
+        }
+
+        if (services.debug) {
+            services.debug->error("tickApp: neither blaster nor fallback mode is initialized");
+        }
+        return false;
     }
 }
 

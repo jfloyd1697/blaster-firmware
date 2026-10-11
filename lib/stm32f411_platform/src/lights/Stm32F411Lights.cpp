@@ -86,6 +86,15 @@ void Stm32F411Lights::flashPattern(const weapon_behavior::LightPatternDef& patte
     m_overridePattern = ActivePattern{pattern, static_cast<std::uint32_t>(::millis())};
 }
 
+void Stm32F411Lights::playSequence(const LightSequence& sequence, const bool loop) {
+    m_sequence = ActiveSequence{sequence, static_cast<std::uint32_t>(::millis()), loop};
+}
+
+void Stm32F411Lights::stopSequence() {
+    m_sequence.reset();
+    render(RenderState{});
+}
+
 void Stm32F411Lights::flash() {
     weapon_behavior::LightPatternDef pattern;
     pattern.mode = weapon_behavior::LightPatternMode::Flash;
@@ -107,6 +116,22 @@ void Stm32F411Lights::update() {
             return;
         }
         m_overridePattern.reset();
+    }
+
+    if (m_sequence.has_value() && !m_sequence->sequence.frames.empty()) {
+        std::uint32_t totalMs = 0;
+        for (const auto& frame : m_sequence->sequence.frames) totalMs += frame.durationMs;
+        const auto elapsed = now - m_sequence->startMs;
+        if (totalMs > 0 && (m_sequence->loop || elapsed < totalMs)) {
+            const std::uint32_t local = m_sequence->loop ? elapsed % totalMs : elapsed;
+            std::uint32_t cursor = 0;
+            for (const auto& frame : m_sequence->sequence.frames) {
+                cursor += frame.durationMs;
+                if (local < cursor) { transmitFrame(frame); return; }
+            }
+        } else {
+            m_sequence.reset();
+        }
     }
 
     if (m_basePattern.has_value()) {
@@ -308,6 +333,34 @@ void Stm32F411Lights::transmitColor(const std::uint32_t color) {
         TIM_CHANNEL_1,
         reinterpret_cast<std::uint32_t*>(m_pwmData.data()),
         static_cast<std::uint16_t>(m_pwmData.size())) == HAL_OK;
+}
+
+
+
+void Stm32F411Lights::transmitFrame(const LightFrame& frame) {
+    if (m_transferActive) return;
+    std::vector<std::uint32_t> colors(m_pins.ledCount, 0);
+    for (const auto& pixel : frame.pixels) {
+        if (pixel.index >= colors.size()) continue;
+        const int brightness = clampByte(static_cast<int>(pixel.intensity * 255.0F));
+        colors[pixel.index] = scaleColor(pixel.color, brightness);
+    }
+    std::size_t offset = 0;
+    for (const auto color : colors) {
+        const std::uint8_t red = static_cast<std::uint8_t>((color >> 16u) & 0xFFu);
+        const std::uint8_t green = static_cast<std::uint8_t>((color >> 8u) & 0xFFu);
+        const std::uint8_t blue = static_cast<std::uint8_t>(color & 0xFFu);
+        appendByte(m_pwmData, green, offset);
+        appendByte(m_pwmData, red, offset);
+        appendByte(m_pwmData, blue, offset);
+    }
+    std::fill(m_pwmData.begin() + static_cast<std::ptrdiff_t>(offset), m_pwmData.end(), 0);
+    m_transferActive = HAL_TIM_PWM_Start_DMA(
+        &g_tim4,
+        TIM_CHANNEL_1,
+        reinterpret_cast<std::uint32_t*>(m_pwmData.data()),
+        static_cast<std::uint16_t>(m_pwmData.size())) == HAL_OK;
+    m_lastColor = 0xFFFFFFFFu;
 }
 
 void Stm32F411Lights::waitForTransfer() {

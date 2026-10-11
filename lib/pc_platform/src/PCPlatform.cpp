@@ -12,9 +12,10 @@
 #include <string>
 #include <fstream>
 
-#include "audio/AudioEngine.h"
+#include "core/audio/AudioEngine.h"
 #include "core/Platform.h"
 #include "core/debug/IDebug.h"
+#include "core/storage/ResourceTreeDumper.h"
 #include "core/time/ITime.h"
 
 #include "platform/pc/input/PCInput.h"
@@ -52,19 +53,35 @@ struct PCTime : ITime {
 PlatformServices PCPlatformFactory::create() {
     PlatformServices services;
     services.debug = std::make_unique<PCDebug>();
-    services.time = std::make_unique<PCTime>();
-    services.input = std::make_unique<PCInput>(services.time.get());
+    services.debug->log("PCPlatform: service startup begin");
 
+    services.debug->log("PCPlatform: starting time service");
+    services.time = std::make_unique<PCTime>();
+    services.debug->log("PCPlatform: time service ready");
+
+    services.debug->log("PCPlatform: starting input service");
+    services.input = std::make_unique<PCInput>(services.time.get());
+    services.debug->log("PCPlatform: input service ready");
+
+    services.debug->log("PCPlatform: starting audio service");
     auto audio = std::make_unique<AudioEngine>(
         std::make_unique<PCAudioBackend>(services.debug.get())
     );
 
-    if (!audio->begin() && services.debug) {
-        services.debug->error("PCPlatform: audio begin failed");
+    if (!audio->begin()) {
+        services.debug->error("PCPlatform: audio service failed");
+    } else {
+        services.debug->log("PCPlatform: audio service ready");
     }
 
     services.audio = std::move(audio);
+
+    services.debug->log("PCPlatform: starting storage service");
     services.textLoader = std::make_unique<PCTextResourceLoader>(services.debug.get());
+    services.debug->log("PCPlatform: storage service ready");
+    ResourceTreeDumper::dump(*services.textLoader, *services.debug);
+
+    services.debug->log("PCPlatform: service startup complete");
     return services;
 }
 

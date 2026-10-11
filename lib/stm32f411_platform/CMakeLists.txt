@@ -12,7 +12,6 @@ target_include_directories(stm32f411_platform
 target_link_libraries(stm32f411_platform
         PUBLIC
         core
-        audio
 )
 
 target_compile_definitions(stm32f411_platform PUBLIC PLATFORM_STM32F411)

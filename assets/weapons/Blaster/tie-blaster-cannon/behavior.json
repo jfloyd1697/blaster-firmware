@@ -8,7 +8,7 @@
       {
         "type": "play_sound_random",
         "sounds": [
-          "assets\\audio\\blaster\\tie-blaster-cannon.wav"
+          "assets/audio/blaster/tie-blaster-cannon.wav"
         ]
       },
       {

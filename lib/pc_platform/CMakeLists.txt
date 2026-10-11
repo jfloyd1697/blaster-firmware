@@ -12,7 +12,6 @@ target_include_directories(pc_platform
 target_link_libraries(pc_platform
         PUBLIC
         core
-        audio
 )
 
 if (WIN32)

@@ -3,12 +3,12 @@
 
 #pragma once
 
-#include <SD.h>
-
 #include <string>
+#include <utility>
 
 #include "core/debug/IDebug.h"
 #include "core/text_resource_loader/ITextResourceLoader.h"
+#include "platform/stm32f411/storage/Stm32F411Sd.h"
 
 class Stm32F411SdTextResourceLoader : public ITextResourceLoader {
 public:
@@ -17,21 +17,89 @@ public:
     }
 
     std::string loadText(const std::string& path) override {
-        File file = SD.open(path.c_str(), FILE_READ);
-        if (!file) {
+        File32 file = g_stm32Sd.open(path.c_str(), O_RDONLY);
+        if (!file || file.isDir()) {
             if (m_debug != nullptr) {
                 m_debug->error("Stm32F411SdTextResourceLoader: failed to open: " + path);
+            }
+            if (file) {
+                file.close();
             }
             return {};
         }
 
         std::string content;
-        content.reserve(file.size());
+        content.reserve(static_cast<std::size_t>(file.fileSize()));
         while (file.available()) {
             content.push_back(static_cast<char>(file.read()));
         }
         file.close();
         return content;
+    }
+
+    std::string readRange(const std::string& path, std::size_t offset, std::size_t count) override {
+        File32 file = g_stm32Sd.open(path.c_str(), O_RDONLY);
+        if (!file || file.isDir() || offset > file.fileSize() || !file.seekSet(offset)) {
+            if (file) file.close();
+            return {};
+        }
+        const auto available = static_cast<std::size_t>(file.fileSize()) - offset;
+        std::string result;
+        result.reserve(count < available ? count : available);
+        for (std::size_t i = 0; i < count && file.available(); ++i) {
+            const int value = file.read();
+            if (value < 0) break;
+            result.push_back(static_cast<char>(value));
+        }
+        file.close();
+        return result;
+    }
+
+    bool resourceExists(const std::string& path) const override {
+        File32 file = g_stm32Sd.open(path.c_str(), O_RDONLY);
+        if (!file) {
+            return false;
+        }
+        const bool exists = !file.isDir();
+        file.close();
+        return exists;
+    }
+
+    ResourceDirectoryListing listDirectory(
+        const std::string& path,
+        std::size_t maxEntries) const override {
+        ResourceDirectoryListing result;
+        File32 directory = g_stm32Sd.open(path.c_str(), O_RDONLY);
+        if (!directory || !directory.isDir()) {
+            if (directory) {
+                directory.close();
+            }
+            return result;
+        }
+
+        result.ok = true;
+        File32 entry;
+        while (entry.openNext(&directory, O_RDONLY)) {
+            if (result.entries.size() >= maxEntries) {
+                result.truncated = true;
+                entry.close();
+                break;
+            }
+
+            char nameBuffer[256]{};
+            entry.getName(nameBuffer, sizeof(nameBuffer));
+
+            ResourceEntry resourceEntry;
+            resourceEntry.name = nameBuffer;
+            resourceEntry.isDirectory = entry.isDir();
+            if (!resourceEntry.isDirectory) {
+                resourceEntry.size = static_cast<std::size_t>(entry.fileSize());
+            }
+            result.entries.push_back(std::move(resourceEntry));
+            entry.close();
+        }
+        directory.close();
+        return result;
     }
 };
 

@@ -8,7 +8,7 @@
       {
         "type": "play_sound_random",
         "sounds": [
-          "assets\\audio\\blaster\\atst-chinguns-online-audio-converter.wav"
+          "assets/audio/blaster/atst-chinguns-online-audio-converter.wav"
         ]
       },
       {

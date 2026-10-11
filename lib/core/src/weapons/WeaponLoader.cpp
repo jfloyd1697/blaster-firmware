@@ -25,11 +25,18 @@ std::vector<WeaponBank> WeaponLoader::loadBanks(
     IDebug& debug,
     const std::string& manifestPath)
 {
-    const std::string manifestText = loader.loadText(manifestPath);
     debug.log("WeaponLoader: Loading weapon banks from manifest at " + manifestPath);
+    const std::string manifestText = loader.loadText(manifestPath);
+    if (manifestText.empty()) {
+        debug.error("WeaponLoader: weapons manifest is missing or empty: " + manifestPath);
+        return {};
+    }
 
-    const WeaponsManifest manifest =
-        WeaponsManifestParser::parseFromText(manifestText, &debug);
+    WeaponsManifest manifest = WeaponsManifestParser::parseFromText(manifestText, &debug);
+    if (manifest.banks.empty()) {
+        debug.error("WeaponLoader: weapons manifest contains no valid banks");
+        return {};
+    }
 
     debug.log(
         "WeaponLoader: Successfully parsed weapons manifest with " +

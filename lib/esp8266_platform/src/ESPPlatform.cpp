@@ -6,11 +6,12 @@
 #include <string>
 
 #include "core/debug/IDebug.h"
+#include "core/storage/ResourceTreeDumper.h"
 #include "core/time/ITime.h"
 
 #include "platform/esp8266/ESPPlatform.h"
 
-#include "audio/AudioEngine.h"
+#include "core/audio/AudioEngine.h"
 #include "platform/esp8266/audio/BasicESPAudioBackend.h"
 #include "platform/esp8266/input/ESPInput.h"
 #include "platform/esp8266/text_resource_loader/ESPTextResourceLoader.h"
@@ -54,11 +55,15 @@ PlatformServices ESPPlatformFactory::create() {
 
     // Debug
     services.debug = std::make_unique<ESPDebug>();
+    services.debug->log("ESPPlatform: service startup begin");
 
     // Time
+    services.debug->log("ESPPlatform: starting time service");
     services.time = std::make_unique<ESPTime>();
+    services.debug->log("ESPPlatform: time service ready");
 
     // Input
+    services.debug->log("ESPPlatform: starting input service");
     auto input = std::make_unique<ESPInput>(
         ESPInput::PinConfig{
             .trigger = D0,
@@ -70,26 +75,37 @@ PlatformServices ESPPlatformFactory::create() {
 
     input->begin();
     services.input = std::move(input);
+    services.debug->log("ESPPlatform: input service ready");
 
     // SPI + SD
+    services.debug->log("ESPPlatform: starting storage service");
     SPI.begin();
 
     constexpr int sdCsPin = D1;
     const bool sdOk = SD.begin(sdCsPin);
 
+    services.debug->log("ESPPlatform: starting audio service");
     services.audio = std::make_shared<AudioEngine>(
         std::make_unique<BasicESPAudioBackend>(services.debug.get())
     );
 
-    services.audio->begin();
+    if (services.audio->begin()) {
+        services.debug->log("ESPPlatform: audio service ready");
+    } else {
+        services.debug->error("ESPPlatform: audio service failed");
+    }
 
     services.textLoader = std::make_unique<EspSdTextResourceLoader>(services.debug.get());
 
     if (sdOk) {
         services.debug->log("ESPPlatform: SD init OK");
+        services.debug->log("ESPPlatform: storage service ready");
+        ResourceTreeDumper::dump(*services.textLoader, *services.debug);
     } else {
-        services.debug->log("ESPPlatform: SD init FAILED");
+        services.debug->error("ESPPlatform: SD init FAILED");
+        services.debug->error("ESPPlatform: storage service failed");
     }
 
+    services.debug->log("ESPPlatform: service startup complete");
     return services;
 }

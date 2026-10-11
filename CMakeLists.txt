@@ -9,7 +9,6 @@ set_property(CACHE BLASTER_PLATFORM PROPERTY STRINGS PC ESP TEENSY STM32F411)
 
 add_subdirectory(lib/weapon_behavior)
 add_subdirectory(lib/core)
-add_subdirectory(lib/audio)
 add_subdirectory(lib/pc_platform)
 add_subdirectory(lib/esp8266_platform)
 
@@ -38,7 +37,6 @@ elseif(BLASTER_PLATFORM STREQUAL "ESP")
     target_link_libraries(BlasterApp
             PRIVATE
             core
-            audio
             esp8266_platform
     )
 
@@ -47,7 +45,6 @@ elseif(BLASTER_PLATFORM STREQUAL "TEENSY")
     target_link_libraries(BlasterApp
             PRIVATE
             core
-            audio
             teensy_platform
     )
 
@@ -56,7 +53,6 @@ elseif(BLASTER_PLATFORM STREQUAL "STM32F411")
     target_link_libraries(BlasterApp
             PRIVATE
             core
-            audio
             stm32f411_platform
     )
 endif()
@@ -64,5 +60,80 @@ endif()
 target_link_libraries(BlasterApp
         PRIVATE
         core
-        audio
 )
+include(CTest)
+if(BUILD_TESTING AND BLASTER_PLATFORM STREQUAL "PC")
+    add_executable(AssetLayoutTest tests/AssetLayoutTest.cpp)
+    target_link_libraries(AssetLayoutTest PRIVATE core)
+    add_test(NAME asset_layout COMMAND AssetLayoutTest)
+    set_tests_properties(asset_layout PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+    add_executable(WeaponRuntimeTest tests/WeaponRuntimeTest.cpp)
+    target_link_libraries(WeaponRuntimeTest PRIVATE core)
+    add_test(NAME weapon_runtime COMMAND WeaponRuntimeTest)
+    set_tests_properties(weapon_runtime PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+    add_executable(ResourceTreeDumperTest tests/ResourceTreeDumperTest.cpp)
+    target_link_libraries(ResourceTreeDumperTest PRIVATE core)
+    add_test(NAME resource_tree_dumper COMMAND ResourceTreeDumperTest)
+
+    add_executable(AnalogButtonLadderTest tests/AnalogButtonLadderTest.cpp)
+    target_link_libraries(AnalogButtonLadderTest PRIVATE core)
+    add_test(NAME analog_button_ladder COMMAND AnalogButtonLadderTest)
+
+    add_executable(CompiledAssetsTest tests/CompiledAssetsTest.cpp)
+    target_link_libraries(CompiledAssetsTest PRIVATE core)
+    add_test(NAME compiled_assets COMMAND CompiledAssetsTest)
+    set_tests_properties(compiled_assets PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+    add_executable(TeensyToneBackendTest
+        tests/TeensyToneBackendTest.cpp
+        lib/teensy_platform/src/audio/TeensyAudioBackend.cpp
+    )
+    target_include_directories(TeensyToneBackendTest BEFORE PRIVATE
+        tests/stubs
+        lib/teensy_platform/include
+    )
+    target_link_libraries(TeensyToneBackendTest PRIVATE core)
+    add_test(NAME teensy_tone_backend COMMAND TeensyToneBackendTest)
+
+    add_executable(Stm32ToneBackendTest
+        tests/Stm32ToneBackendTest.cpp
+        lib/stm32f411_platform/src/audio/Stm32F411AudioBackend.cpp
+    )
+    target_include_directories(Stm32ToneBackendTest BEFORE PRIVATE
+        tests/stubs
+        lib/stm32f411_platform/include
+    )
+    target_link_libraries(Stm32ToneBackendTest PRIVATE core)
+    add_test(NAME stm32_tone_backend COMMAND Stm32ToneBackendTest)
+
+    add_executable(Stm32LightBackendTest
+        tests/Stm32LightBackendTest.cpp
+        lib/stm32f411_platform/src/lights/Stm32F411LightBackend.cpp
+    )
+    target_include_directories(Stm32LightBackendTest BEFORE PRIVATE
+        tests/stubs
+        lib/stm32f411_platform/include
+    )
+    target_link_libraries(Stm32LightBackendTest PRIVATE core)
+    add_test(NAME stm32_light_backend COMMAND Stm32LightBackendTest)
+
+    add_executable(PlatformDiagnosticsTest
+        tests/PlatformDiagnosticsTest.cpp
+        src/tests/PlatformDiagnostics.cpp
+    )
+    target_include_directories(PlatformDiagnosticsTest BEFORE PRIVATE tests/stubs)
+    target_compile_definitions(PlatformDiagnosticsTest PRIVATE PLATFORM_STM32F411)
+    target_link_libraries(PlatformDiagnosticsTest PRIVATE core)
+    add_test(NAME platform_diagnostics COMMAND PlatformDiagnosticsTest)
+    set_tests_properties(platform_diagnostics PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+    add_executable(ToneGeneratorTest tests/ToneGeneratorTest.cpp)
+    target_link_libraries(ToneGeneratorTest PRIVATE core)
+    add_test(NAME tone_generator COMMAND ToneGeneratorTest)
+
+    add_executable(LightEngineTest tests/LightEngineTest.cpp)
+    target_link_libraries(LightEngineTest PRIVATE core)
+    add_test(NAME light_engine COMMAND LightEngineTest)
+endif()

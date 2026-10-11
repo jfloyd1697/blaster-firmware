@@ -1,7 +1,7 @@
 #pragma once
 
+#include "core/input/AnalogButtonLadder.h"
 #include "core/input/IInput.h"
-
 
 class ESPInput : public IInput {
 public:
@@ -11,15 +11,17 @@ public:
         int quit = -1;
     };
 
-    ESPInput(const PinConfig &pins, ITime *time);
+    ESPInput(PinConfig pins, ITime* time, AnalogButtonLadderConfig ladder = {});
 
     void begin() const;
+    [[nodiscard]] std::optional<int> rawLadderValue() const override;
 
 protected:
     [[nodiscard]] bool readRawButton(ButtonID button) const override;
 
 private:
-    int readLadderRaw() const;
+    [[nodiscard]] int readLadderRaw() const;
 
     PinConfig m_pins;
+    AnalogButtonLadder m_ladder;
 };

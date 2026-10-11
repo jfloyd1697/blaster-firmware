@@ -2,16 +2,16 @@
 
 namespace {
 constexpr Stm32F411SpiPins kExternalSdPins{
-    .mosi = PB15,
-    .miso = PB14,
-    .sck = PB13,
-    .cs = PB12,
+    .mosi = PA7,
+    .miso = PA6,
+    .sck = PA5,
+    .cs = PA4,
 };
 
 constexpr Stm32F411I2sPins kMax98357Pins{
-    .ws = PA4,
-    .bclk = PC10,
-    .data = PC12,
+    .ws = PB12,
+    .bclk = PB13,
+    .data = PB15,
 };
 
 constexpr Stm32F411InputPins kInputPins{
@@ -19,7 +19,7 @@ constexpr Stm32F411InputPins kInputPins{
     .ladder = PA1,
 };
 
-constexpr pin_size_t kWs2812Pin = PB6;
+constexpr std::uint32_t kWs2812Pin = PB6;
 }
 
 Stm32F411BoardConfig Stm32F411Boards::blackPillV20(const std::uint16_t ledCount) {

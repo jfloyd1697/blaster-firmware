@@ -8,7 +8,7 @@
       {
         "type": "play_sound_random",
         "sounds": [
-          "assets\\audio\\blaster\\w-e-11-blaster-rifle.wav"
+          "assets/audio/blaster/w-e-11-blaster-rifle.wav"
         ]
       },
       {

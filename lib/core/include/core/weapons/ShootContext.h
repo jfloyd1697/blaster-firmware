@@ -11,28 +11,16 @@ class ITime;
 class IAudioEngine;
 struct IDebug;
 
-namespace weapon_behavior {
-struct LightPatternDef;
-}
-
 struct ShootContext {
     ITime* time = nullptr;
     IAudioEngine* audio = nullptr;
     IDebug* debug = nullptr;
 
-    int* ammo = nullptr;
-
-    std::function<void()> emitShot;
-    std::function<void()> flashMuzzle;
-
-    std::function<void(const weapon_behavior::LightPatternDef&)> setLight;
-    std::function<void(const weapon_behavior::LightPatternDef&)> flashLight;
-
-    std::function<void(const std::string&, bool, bool)> playSound;
-    std::function<void(const std::vector<std::string>&, bool, bool)> playRandomSound;
-    std::function<void()> stopSound;
-
-    std::function<void(const std::string&)> emitBehaviorEvent;
+    std::function<void(const std::string&, bool, const std::string&)> playAudio;
+    std::function<void()> stopAudio;
+    std::function<void(const std::string&, bool)> playLight;
+    std::function<void()> stopLight;
+    std::function<void(const std::string&)> log;
 };
 
 #endif // BLASTER_FIRMWARE_SHOOTCONTEXT_H

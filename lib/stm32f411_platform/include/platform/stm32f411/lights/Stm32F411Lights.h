@@ -23,6 +23,8 @@ public:
     void setPattern(const weapon_behavior::LightPatternDef& pattern) override;
     void flashPattern(const weapon_behavior::LightPatternDef& pattern) override;
     void flash() override;
+    void playSequence(const LightSequence& sequence, bool loop) override;
+    void stopSequence() override;
     void update() override;
     void onDmaComplete();
 
@@ -30,6 +32,12 @@ private:
     struct ActivePattern {
         weapon_behavior::LightPatternDef pattern;
         std::uint32_t startMs = 0;
+    };
+
+    struct ActiveSequence {
+        LightSequence sequence;
+        std::uint32_t startMs = 0;
+        bool loop = false;
     };
 
     struct RenderState {
@@ -47,12 +55,14 @@ private:
     bool initializeTimerDma();
     void render(const RenderState& state);
     void transmitColor(std::uint32_t color);
+    void transmitFrame(const LightFrame& frame);
     void waitForTransfer();
 
     Stm32F411LightPins m_pins;
     std::vector<std::uint16_t> m_pwmData;
     std::optional<ActivePattern> m_basePattern;
     std::optional<ActivePattern> m_overridePattern;
+    std::optional<ActiveSequence> m_sequence;
     std::uint32_t m_lastColor = 0xFFFFFFFFu;
     bool m_transferActive = false;
 };

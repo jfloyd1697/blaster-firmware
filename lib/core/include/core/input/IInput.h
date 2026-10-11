@@ -6,6 +6,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 class ITime;
 
@@ -42,6 +43,10 @@ public:
     [[nodiscard]] bool wasReloadPressed() const;
 
     [[nodiscard]] bool wasQuitPressed() const;
+
+    [[nodiscard]] virtual std::optional<int> rawLadderValue() const {
+        return std::nullopt;
+    }
 
 protected:
     [[nodiscard]] virtual bool readRawButton(ButtonID button) const = 0;

@@ -6,6 +6,7 @@
 #include <stm32f4xx_hal.h>
 
 #include "core/debug/IDebug.h"
+#include "core/lights/LightOutputCurve.h"
 #include "platform/stm32f411/lights/Stm32F411LightBackend.h"
 
 struct TestDebug final : IDebug {
@@ -35,9 +36,14 @@ int main() {
         assert(testTimPwmStartCount == 1);
         assert(testTimPwmLength == 24 + 64);
         const auto* pwm = reinterpret_cast<const std::uint16_t*>(testTimPwmData);
-        // Red is encoded as GRB: 8 off bits, then 8 on bits, then 8 off bits.
+        // Gamma correction caps the full red channel, still GRB bit ordering.
         for (int i = 0; i < 8; ++i) assert(pwm[i] == 38);
-        for (int i = 8; i < 16; ++i) assert(pwm[i] == 77);
+        const auto red = LightOutputCurve::correct({255, 0, 0})[0];
+        assert(red == LightOutputCurve::RedPeak);
+        for (int i = 0; i < 8; ++i) {
+            const bool bit = ((red >> (7 - i)) & 1u) != 0u;
+            assert(pwm[8 + i] == (bit ? 77 : 38));
+        }
         for (int i = 16; i < 24; ++i) assert(pwm[i] == 38);
         assert(pwm[24] == 0);
         TIM_HandleTypeDef complete;
@@ -56,6 +62,8 @@ int main() {
     lights.show({LightColor{0, 0, 255}});
     const auto* pwm = reinterpret_cast<const std::uint16_t*>(testTimPwmData);
     assert(pwm[0] == 40);
-    assert(pwm[16] == 80);
+    const auto blue = LightOutputCurve::correct({0, 0, 255})[2];
+    assert(blue == LightOutputCurve::BluePeak);
+    assert(pwm[16] == (((blue >> 7) & 1u) ? 80 : 40));
     assert(debug.errors.empty());
 }

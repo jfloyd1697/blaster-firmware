@@ -18,6 +18,7 @@
 #include "core/time/ITime.h"
 #include "core/text_resource_loader/ITextResourceLoader.h"
 #include "platform/stm32f411/Stm32F411Platform.h"
+#include "platform/stm32f411/diagnostics/I2sGpioLoopback.h"
 
 namespace {
 unsigned long clockMs = 0;
@@ -51,7 +52,7 @@ public:
     }
     bool playTone(const std::uint32_t frequencyHz, const std::uint32_t durationMs) override {
         toneFrequencies.push_back(frequencyHz);
-        assert(durationMs == 350);
+        assert(durationMs == 350 || durationMs == 5000);
         return true;
     }
     void stop() override { ++stopCount; }
@@ -165,6 +166,61 @@ int main() {
     assert(testAudio->toneFrequencies.back() == 440);
     Serial.input = "q";
     loop();
+
+
+    // Test a exercises GPIO/TIM2 loopback independently of the sound-producing
+    // module, with a single wire moved between WS, BCLK and DATA.
+    Serial.input = "a";
+    loop();
+    assert(stm32_i2s_loopback::running);
+    assert(testAudio->toneFrequencies.back() == 440u);
+    assert(Serial.output.find("PA15 (INPUT)") != std::string::npos);
+
+    Serial.input = "t";
+    loop();
+    assert(Serial.output.find("PASS: PA15/TIM2 capture and jumper work") != std::string::npos);
+    Serial.input = "s";
+    loop();
+    assert(Serial.output.find("I2S register snapshot only available") != std::string::npos);
+
+    Serial.input = "w";
+    loop();
+    stm32_i2s_loopback::suppliedEdges = 11025u;
+    clockMs += 250;
+    loop();
+    assert(Serial.output.find("WS: 43924 Hz | PASS") != std::string::npos);
+    // A disconnected, pulled-down input must not appear as a valid clock.
+    clockMs += 250;
+    loop();
+    assert(Serial.output.find("WS: 0 Hz | FAIL") != std::string::npos);
+
+    Serial.input = "b";
+    loop();
+    stm32_i2s_loopback::suppliedEdges = 352800u;
+    clockMs += 250;
+    loop();
+    assert(Serial.output.find("BCLK: 1405578 Hz | PASS") != std::string::npos);
+
+    Serial.input = "d";
+    loop();
+    stm32_i2s_loopback::suppliedEdges = 43000u;
+    clockMs += 250;
+    loop();
+    assert(Serial.output.find("DATA: 43000 rising edges / 251 ms | ACTIVITY") != std::string::npos);
+
+    // Sustain the test past the five-second backend tone limit.
+    const std::size_t toneCountBeforeRefresh = testAudio->toneFrequencies.size();
+    clockMs += 4000;
+    loop();
+    assert(testAudio->toneFrequencies.size() == toneCountBeforeRefresh + 1);
+    assert(testAudio->toneFrequencies.back() == 440u);
+
+    const int stopsBeforeLoopbackQuit = testAudio->stopCount;
+    Serial.input = "q";
+    loop();
+    assert(!stm32_i2s_loopback::running);
+    assert(stm32_i2s_loopback::stops == 1);
+    assert(testAudio->stopCount == stopsBeforeLoopbackQuit + 1);
 
     // Test 8 discovers a file through the compiled bank instead of using a stale path.
     Serial.input = "8";

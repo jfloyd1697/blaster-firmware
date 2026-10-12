@@ -92,6 +92,8 @@ void Stm32F411Lights::playSequence(const LightSequence& sequence, const bool loo
 
 void Stm32F411Lights::stopSequence() {
     m_sequence.reset();
+    m_basePattern.reset();
+    m_overridePattern.reset();
     render(RenderState{});
 }
 

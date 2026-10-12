@@ -24,6 +24,10 @@
 #endif
 #ifdef PLATFORM_STM32F411
 #include "platform/stm32f411/Stm32F411Platform.h"
+#include "platform/stm32f411/diagnostics/I2sGpioLoopback.h"
+#if defined(ARDUINO_ARCH_STM32)
+#include <stm32f4xx_hal.h>
+#endif
 #endif
 
 namespace {
@@ -60,6 +64,16 @@ constexpr unsigned long kToneStepIntervalMs = 650;
 constexpr std::size_t kMaxWavPathLength = 240;
 constexpr unsigned long kLadderPrintIntervalMs = 100;
 constexpr unsigned long kLightStepIntervalMs = 1000;
+constexpr unsigned long kI2sMeasureIntervalMs = 250;
+constexpr unsigned long kI2sToneRefreshMs = 4000;
+constexpr unsigned long kI2sToneDurationMs = 5000;
+
+enum class I2sLine {
+    None,
+    WordSelect,
+    BitClock,
+    Data,
+};
 
 enum class TestMode {
     Menu,
@@ -70,6 +84,7 @@ enum class TestMode {
     Sound,
     Lights,
     LightShowcase,
+    I2sLoopback,
 };
 
 PlatformServices services;
@@ -83,6 +98,9 @@ std::size_t lightStep = 0;
 std::size_t toneStep = 0;
 unsigned long lastToneStepMs = 0;
 std::string pendingWavPath;
+I2sLine selectedI2sLine = I2sLine::None;
+unsigned long i2sMeasurementStartMs = 0;
+unsigned long i2sToneStartMs = 0;
 
 PlatformServices createPlatform() {
 #ifdef PLATFORM_ESP
@@ -109,12 +127,14 @@ void printMenu() {
     Serial.println("7 - asset layout test");
     Serial.println("8 - WAV playback test (auto-select exported SD clip)");
     Serial.println("9 - WAV playback test (enter an existing SD path)");
+    Serial.println("a - I2S GPIO loopback (STM32: PA15 input; WS/BCLK/DATA)");
     Serial.println("q - stop active test / return to menu");
     Serial.println();
 }
 
 void returnToMenu() {
-    if ((mode == TestMode::Sound || mode == TestMode::Tone) && services.audio) {
+    if ((mode == TestMode::Sound || mode == TestMode::Tone ||
+         mode == TestMode::I2sLoopback) && services.audio) {
         services.audio->stop();
     }
     if ((mode == TestMode::Lights || mode == TestMode::LightShowcase) && services.lights) {
@@ -126,6 +146,11 @@ void returnToMenu() {
         services.lights->setPattern(off);
         services.lights->update();
     }
+#ifdef PLATFORM_STM32F411
+    if (mode == TestMode::I2sLoopback) {
+        stm32_i2s_loopback::end();
+    }
+#endif
     mode = TestMode::Menu;
     printMenu();
 }
@@ -230,6 +255,195 @@ void updateToneTest() {
     Serial.println(" Hz");
     lastToneStepMs = now;
     ++toneStep;
+}
+
+// Read the peripheral *while the diagnostic tone is transmitting*. This
+// distinguishes an inactive peripheral/clock/DMA from a faulty external wire.
+void printI2sHardwareStatus() {
+#if defined(PLATFORM_STM32F411) && defined(ARDUINO_ARCH_STM32)
+    const std::uint32_t i2sConfig = SPI2->I2SCFGR;
+    const std::uint32_t dmaControl = DMA1_Stream4->CR;
+    const std::uint32_t dmaBefore = DMA1_Stream4->NDTR;
+    delayMicroseconds(100);
+    const std::uint32_t dmaAfter = DMA1_Stream4->NDTR;
+    const std::uint32_t modes = GPIOB->MODER;
+    const std::uint32_t alternate = GPIOB->AFR[1];
+    Serial.println("=== I2S2 hardware status (while tone runs) ===");
+    Serial.print("PLLI2S ready: ");
+    Serial.println((RCC->CR & RCC_CR_PLLI2SRDY) != 0u ? "YES" : "NO");
+    Serial.print("I2S enabled: ");
+    Serial.println((i2sConfig & SPI_I2SCFGR_I2SE) != 0u ? "YES" : "NO");
+    Serial.print("I2S mode: ");
+    Serial.println((i2sConfig & SPI_I2SCFGR_I2SMOD) != 0u ? "I2S" : "SPI");
+    Serial.print("I2SCFGR raw: 0x");
+    Serial.println(i2sConfig, HEX);
+    Serial.print("I2S master TX: ");
+    Serial.println((i2sConfig & SPI_I2SCFGR_I2SCFG) == I2S_MODE_MASTER_TX ? "YES" : "NO");
+    Serial.print("I2S TX DMA request enabled: ");
+    Serial.println((SPI2->CR2 & SPI_CR2_TXDMAEN) != 0u ? "YES" : "NO");
+    Serial.print("DMA1 Stream4 enabled: ");
+    Serial.println((dmaControl & DMA_SxCR_EN) != 0u ? "YES" : "NO");
+    Serial.print("DMA NDTR before / after 100 us: ");
+    Serial.print(dmaBefore);
+    Serial.print(" / ");
+    Serial.println(dmaAfter);
+    Serial.print("DMA transferring: ");
+    Serial.println(dmaBefore != dmaAfter ? "YES" : "NO (or between bursts)");
+    Serial.print("SPI2 SR: 0x");
+    Serial.println(SPI2->SR, HEX);
+    Serial.print("I2S2 prescaler: 0x");
+    Serial.println(SPI2->I2SPR, HEX);
+    for (const std::uint32_t pin : std::array<std::uint32_t, 3>{12u, 13u, 15u}) {
+        const std::uint32_t mode = (modes >> (pin * 2u)) & 3u;
+        const std::uint32_t af = (alternate >> ((pin - 8u) * 4u)) & 15u;
+        Serial.print("PB");
+        Serial.print(pin);
+        Serial.print(" mode (expected 2): ");
+        Serial.print(mode);
+        Serial.print(" AF (expected 5): ");
+        Serial.println(af);
+    }
+#else
+    Serial.println("I2S register snapshot only available on STM32 hardware");
+#endif
+}
+
+void testI2sCounterReference() {
+#ifdef PLATFORM_STM32F411
+    Serial.println("Connect PB8 -> PA15 (REMOVE the PB12/PB13/PB15 jumper first).");
+    const std::uint32_t count = stm32_i2s_loopback::runReferencePulseTest();
+    Serial.print("Reference GPIO rising edges: ");
+    Serial.print(count);
+    Serial.println(" / 250 expected");
+    Serial.println(count >= 245u && count <= 255u
+        ? "PASS: PA15/TIM2 capture and jumper work"
+        : "FAIL: check PB8->PA15 jumper and PA15 capture configuration");
+    stm32_i2s_loopback::resetCounter();
+    i2sMeasurementStartMs = millis();
+#else
+    Serial.println("Reference test unavailable on this platform");
+#endif
+}
+
+void startI2sLoopbackTest() {
+    Serial.println("=== STM32 I2S GPIO loopback ===");
+#ifndef PLATFORM_STM32F411
+    Serial.println("UNAVAILABLE: this test requires STM32F411 TIM2 input counting.");
+#else
+    if (!services.audio) {
+        Serial.println("FAIL: no audio service");
+        return;
+    }
+    if (!stm32_i2s_loopback::begin()) {
+        Serial.println("FAIL: could not configure PA15/TIM2 edge counter");
+        return;
+    }
+    if (!services.audio->playTone(440u, kI2sToneDurationMs)) {
+        Serial.println("FAIL: I2S hardware did not start the diagnostic tone");
+        stm32_i2s_loopback::end();
+        return;
+    }
+    i2sToneStartMs = millis();
+    selectedI2sLine = I2sLine::None;
+    mode = TestMode::I2sLoopback;
+    Serial.println("Connect one short jumper: PA15 (INPUT) -> one I2S output:");
+    Serial.println("  w - PB12 (WS/LRCLK, expected approximately 44100 Hz)");
+    Serial.println("  b - PB13 (BCLK, expected approximately 1411200 Hz)");
+    Serial.println("  d - PB15 (DATA, edges expected; frequency not fixed)");
+    Serial.println("  t - counter self-test: move jumper to PB8 -> PA15 (250 reference pulses)");
+    Serial.println("  s - snapshot live I2S clocks, GPIO alternate functions and DMA");
+    Serial.println("Move the jumper and press w/b/d to select what is connected.");
+    printI2sHardwareStatus();
+    Serial.println("Never short the three output pins together. Press q to stop.");
+#endif
+}
+
+void selectI2sLine(const char command) {
+#ifdef PLATFORM_STM32F411
+    if (command == 's') {
+        printI2sHardwareStatus();
+        return;
+    }
+    if (command == 't') {
+        selectedI2sLine = I2sLine::None;
+        testI2sCounterReference();
+        return;
+    }
+    switch (command) {
+        case 'w':
+            selectedI2sLine = I2sLine::WordSelect;
+            Serial.println("Measuring WS: PA15 <- PB12");
+            break;
+        case 'b':
+            selectedI2sLine = I2sLine::BitClock;
+            Serial.println("Measuring BCLK: PA15 <- PB13");
+            break;
+        case 'd':
+            selectedI2sLine = I2sLine::Data;
+            Serial.println("Measuring DATA: PA15 <- PB15");
+            break;
+        default:
+            Serial.println("Choose w, b, d, t, s, or q.");
+            return;
+    }
+    stm32_i2s_loopback::resetCounter();
+    i2sMeasurementStartMs = millis();
+#else
+    (void) command;
+#endif
+}
+
+void updateI2sLoopbackTest() {
+#ifdef PLATFORM_STM32F411
+    const unsigned long now = millis();
+    // Play a continuous 440 Hz source; refresh before the backend's maximum
+    // five-second tone duration expires. Skip the counter window on refresh.
+    if (now - i2sToneStartMs >= kI2sToneRefreshMs) {
+        if (!services.audio->playTone(440u, kI2sToneDurationMs)) {
+            Serial.println("FAIL: tone output stopped unexpectedly");
+            returnToMenu();
+            return;
+        }
+        i2sToneStartMs = now;
+        stm32_i2s_loopback::resetCounter();
+        i2sMeasurementStartMs = now;
+    }
+    if (selectedI2sLine == I2sLine::None ||
+        now - i2sMeasurementStartMs < kI2sMeasureIntervalMs) {
+        return;
+    }
+    const std::uint32_t elapsedMs = static_cast<std::uint32_t>(now - i2sMeasurementStartMs);
+    const std::uint32_t edges = stm32_i2s_loopback::takeRisingEdges();
+    i2sMeasurementStartMs = now;
+    const std::uint32_t frequency = stm32_i2s_loopback::edgeFrequencyHz(edges, elapsedMs);
+
+    switch (selectedI2sLine) {
+        case I2sLine::WordSelect:
+            Serial.print("WS: ");
+            Serial.print(frequency);
+            Serial.print(" Hz | ");
+            Serial.println(stm32_i2s_loopback::nearFrequency(
+                frequency, stm32_i2s_loopback::kWordSelectHz) ? "PASS" : "FAIL");
+            break;
+        case I2sLine::BitClock:
+            Serial.print("BCLK: ");
+            Serial.print(frequency);
+            Serial.print(" Hz | ");
+            Serial.println(stm32_i2s_loopback::nearFrequency(
+                frequency, stm32_i2s_loopback::kBitClockHz) ? "PASS" : "FAIL");
+            break;
+        case I2sLine::Data:
+            Serial.print("DATA: ");
+            Serial.print(edges);
+            Serial.print(" rising edges / ");
+            Serial.print(elapsedMs);
+            Serial.print(" ms | ");
+            Serial.println(edges > 0u ? "ACTIVITY (not a framing check)" : "NO ACTIVITY");
+            break;
+        case I2sLine::None:
+            break;
+    }
+#endif
 }
 
 void promptWavPath() {
@@ -486,11 +700,19 @@ void handleCommand(char command) {
         returnToMenu();
         return;
     }
+    if (mode == TestMode::I2sLoopback) {
+        selectI2sLine(command);
+        return;
+    }
     if (mode != TestMode::Menu) {
         return;
     }
 
     switch (command) {
+        case 'a':
+        case 'A':
+            startI2sLoopbackTest();
+            break;
         case '1':
             mode = TestMode::Input;
             Serial.println("=== Input test ===");
@@ -572,6 +794,9 @@ void loop() {
             break;
         case TestMode::LightShowcase:
             updateLightShowcaseTest();
+            break;
+        case TestMode::I2sLoopback:
+            updateI2sLoopbackTest();
             break;
         case TestMode::Menu:
         case TestMode::SoundPath:

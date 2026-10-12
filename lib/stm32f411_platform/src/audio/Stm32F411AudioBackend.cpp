@@ -74,7 +74,9 @@ bool Stm32F411AudioBackend::begin() {
 
     if (!initializeHardware()) {
         if (m_debug != nullptr) {
-            m_debug->error("Stm32F411AudioBackend: I2S2/DMA initialization failed");
+            m_debug->error("Stm32F411AudioBackend: I2S2/DMA initialization failed "
+                           "(HAL state=" + std::to_string(static_cast<unsigned int>(g_i2s2.State)) +
+                           ", HAL error=" + std::to_string(g_i2s2.ErrorCode) + ")");
         }
         return false;
     }
@@ -88,6 +90,15 @@ bool Stm32F411AudioBackend::begin() {
 
 void Stm32F411AudioBackend::update() {
     if (!m_active) {
+        return;
+    }
+
+    if (!isI2sConfigured()) {
+        if (m_debug != nullptr) {
+            m_debug->error("Stm32F411AudioBackend: SPI2 lost I2S mode DURING playback; "
+                           "stopping audio (I2SCFGR=" + std::to_string(SPI2->I2SCFGR) + ")");
+        }
+        stop();
         return;
     }
 
@@ -128,10 +139,7 @@ void Stm32F411AudioBackend::playSound(const std::string& file, const bool loop, 
     // I2S2 was initialized at 44.1 kHz by begin(). Do not call HAL_I2S_Init
     // again between clips: it can fail while the peripheral/DMA is active and
     // was being incorrectly reported as an unsupported 44100 Hz file.
-    if (g_i2s2.State != HAL_I2S_STATE_READY) {
-        if (m_debug != nullptr) {
-            m_debug->error("Stm32F411AudioBackend: I2S2 is not ready for playback");
-        }
+    if (!ensureI2sReady()) {
         stop();
         return;
     }
@@ -164,10 +172,7 @@ bool Stm32F411AudioBackend::playTone(const std::uint32_t frequencyHz,
         }
         return false;
     }
-    if (g_i2s2.State != HAL_I2S_STATE_READY) {
-        if (m_debug != nullptr) {
-            m_debug->error("Stm32F411AudioBackend: I2S2 is not ready for tone playback");
-        }
+    if (!ensureI2sReady()) {
         return false;
     }
 
@@ -207,11 +212,18 @@ bool Stm32F411AudioBackend::startBufferedPlayback() {
         }
         return false;
     }
+    if (!isI2sConfigured()) {
+        if (m_debug != nullptr) {
+            m_debug->error("Stm32F411AudioBackend: SPI2 not in I2S mode after DMA start");
+        }
+        HAL_I2S_DMAStop(&g_i2s2);
+        return false;
+    }
     return true;
 }
 
 void Stm32F411AudioBackend::stop() {
-    if (g_i2s2.Instance != nullptr) {
+    if (m_active && g_i2s2.Instance != nullptr) {
         HAL_I2S_DMAStop(&g_i2s2);
     }
 
@@ -355,11 +367,25 @@ bool Stm32F411AudioBackend::parseWavHeader(WavFormat& format) {
 
 bool Stm32F411AudioBackend::initializeHardware() {
     __HAL_RCC_GPIOB_CLK_ENABLE();
-    __HAL_RCC_SPI2_CLK_ENABLE();
     __HAL_RCC_DMA1_CLK_ENABLE();
+
+    // STM32F411: the I2S PLL has its own input prescaler (PLLI2SM).
+    // Use the already configured system PLL input divider so the I2S PLL
+    // sees the same reference input for HSI- and HSE-based boards.
+    const std::uint32_t pllInputDivider = RCC->PLLCFGR & RCC_PLLCFGR_PLLM;
+    if (pllInputDivider < 2u || pllInputDivider > 63u) {
+        if (m_debug != nullptr) {
+            m_debug->error("Stm32F411AudioBackend: invalid PLL input divider for I2S");
+        }
+        return false;
+    }
+
+    __HAL_RCC_I2S_CONFIG(RCC_I2SCLKSOURCE_PLLI2S);
+    __HAL_RCC_SPI2_CLK_ENABLE();
 
     RCC_PeriphCLKInitTypeDef clocks{};
     clocks.PeriphClockSelection = RCC_PERIPHCLK_I2S;
+    clocks.PLLI2S.PLLI2SM = pllInputDivider;
     clocks.PLLI2S.PLLI2SN = 271;
     clocks.PLLI2S.PLLI2SR = 2;
     if (HAL_RCCEx_PeriphCLKConfig(&clocks) != HAL_OK) {
@@ -411,7 +437,87 @@ bool Stm32F411AudioBackend::initializeHardware() {
                        std::to_string(static_cast<int>(i2sStatus)) + ", error " +
                        std::to_string(g_i2s2.ErrorCode) + ")");
     }
-    return i2sStatus == HAL_OK;
+    if (i2sStatus != HAL_OK) {
+        return false;
+    }
+    if (g_i2s2.State != HAL_I2S_STATE_READY) {
+        if (m_debug != nullptr) {
+            m_debug->error("Stm32F411AudioBackend: HAL_I2S_Init returned OK but handle state is " +
+                           std::to_string(static_cast<unsigned int>(g_i2s2.State)));
+        }
+        return false;
+    }
+    if (!isI2sConfigured()) {
+        if (m_debug != nullptr) {
+            m_debug->error("Stm32F411AudioBackend: HAL_I2S_Init returned OK but SPI2 "
+                           "is not in I2S master TX mode (I2SCFGR=" +
+                           std::to_string(SPI2->I2SCFGR) + ", I2SPR=" +
+                           std::to_string(SPI2->I2SPR) + ")");
+        }
+        return false;
+    }
+    return true;
+}
+
+bool Stm32F411AudioBackend::isI2sConfigured() const {
+    const std::uint32_t configuration = SPI2->I2SCFGR;
+    const bool i2sSelected = (configuration & SPI_I2SCFGR_I2SMOD) != 0u;
+    const bool transmitterSelected = (configuration & SPI_I2SCFGR_I2SCFG) == I2S_MODE_MASTER_TX;
+    const bool prescalerConfigured = (SPI2->I2SPR & SPI_I2SPR_I2SDIV) > 2u;
+    return i2sSelected && transmitterSelected && prescalerConfigured;
+}
+
+bool Stm32F411AudioBackend::ensureI2sReady() {
+    // The platform keeps the audio service available for diagnostics even if
+    // begin() failed. In that case the HAL handle is RESET/ERROR, not READY.
+    // Retry the *complete* peripheral initialization instead of treating the
+    // uninitialized handle as an unrecoverable playback error.
+    if (g_i2s2.State == HAL_I2S_STATE_READY && isI2sConfigured()) {
+        g_activeAudio = this;
+        return true;
+    }
+
+    // Never change SPI2 or its DMA configuration while a transfer is active.
+    // This also catches a stale BUSY_TX HAL handle that needs investigation.
+    if ((DMA1_Stream4->CR & DMA_SxCR_EN) != 0u) {
+        if (m_debug != nullptr) {
+            m_debug->error("Stm32F411AudioBackend: cannot initialize I2S while DMA1 Stream4 is enabled "
+                           "(HAL state=" + std::to_string(static_cast<unsigned int>(g_i2s2.State)) + ")");
+        }
+        return false;
+    }
+
+    if (m_debug != nullptr) {
+        m_debug->log("Stm32F411AudioBackend: retrying full I2S2 initialization "
+                     "(HAL state=" + std::to_string(static_cast<unsigned int>(g_i2s2.State)) +
+                     ", I2SCFGR=" + std::to_string(SPI2->I2SCFGR) +
+                     ", I2SPR=" + std::to_string(SPI2->I2SPR) + ")");
+    }
+
+    if (!initializeHardware()) {
+        if (m_debug != nullptr) {
+            m_debug->error("Stm32F411AudioBackend: I2S2 recovery failed "
+                           "(HAL state=" + std::to_string(static_cast<unsigned int>(g_i2s2.State)) +
+                           ", HAL error=" + std::to_string(g_i2s2.ErrorCode) +
+                           ", I2SCFGR=" + std::to_string(SPI2->I2SCFGR) +
+                           ", I2SPR=" + std::to_string(SPI2->I2SPR) + ")");
+        }
+        return false;
+    }
+
+    if (g_i2s2.State != HAL_I2S_STATE_READY || !isI2sConfigured()) {
+        if (m_debug != nullptr) {
+            m_debug->error("Stm32F411AudioBackend: I2S2 initialization left an unusable HAL handle "
+                           "(state=" + std::to_string(static_cast<unsigned int>(g_i2s2.State)) + ")");
+        }
+        return false;
+    }
+
+    g_activeAudio = this;
+    if (m_debug != nullptr) {
+        m_debug->log("Stm32F411AudioBackend: I2S2 recovery completed");
+    }
+    return true;
 }
 
 bool Stm32F411AudioBackend::fillHalf(const std::size_t halfIndex) {

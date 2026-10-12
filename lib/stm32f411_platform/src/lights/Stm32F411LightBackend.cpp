@@ -7,6 +7,7 @@
 #include <string>
 
 #include "core/debug/IDebug.h"
+#include "core/lights/LightOutputCurve.h"
 #include <cstddef>
 #include <cstdint>
 
@@ -78,7 +79,8 @@ void Stm32F411LightBackend::show(const std::vector<LightColor>& pixels) {
     }
 
     std::size_t offset = 0;
-    for (const auto& color : pixels) {
+    for (const auto& pixel : pixels) {
+        const LightColor color = LightOutputCurve::correct(pixel);
         appendByte(m_pwmData, color[1], m_zeroDutyTicks, m_oneDutyTicks, offset);
         appendByte(m_pwmData, color[0], m_zeroDutyTicks, m_oneDutyTicks, offset);
         appendByte(m_pwmData, color[2], m_zeroDutyTicks, m_oneDutyTicks, offset);

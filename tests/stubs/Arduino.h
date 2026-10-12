@@ -32,3 +32,5 @@ extern DiagnosticTestSerial Serial;
 unsigned long millis();
 void delay(unsigned long milliseconds);
 inline void yield() {}
+
+inline void delayMicroseconds(unsigned long) {}

@@ -49,6 +49,8 @@ private:
     bool openWav(const std::string& path);
     bool parseWavHeader(WavFormat& format);
     bool initializeHardware();
+    [[nodiscard]] bool isI2sConfigured() const;
+    bool ensureI2sReady();
     bool startBufferedPlayback();
     bool fillHalf(std::size_t halfIndex);
     std::size_t readPcmFrames(std::int16_t* destination, std::size_t frameCount);

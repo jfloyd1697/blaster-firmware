@@ -25,6 +25,8 @@ int main() {
     TestDebug debug;
     Stm32F411AudioBackend backend({PB12, PB13, PB15}, &debug);
     assert(backend.begin());
+    assert(testI2sInitCount == 1);
+    assert((SPI2->I2SCFGR & SPI_I2SCFGR_I2SMOD) != 0);
     assert(!backend.playTone(0, 350));
     assert(!backend.playTone(440, 0));
     assert(backend.playTone(440, 350));
@@ -55,8 +57,21 @@ int main() {
     }
     assert(finished);
     assert(g_stm32Sd.openCount == 0);
+    // A peripheral reset by another HAL user must not result in silent playback.
+    SPI2->I2SCFGR = 0;
+    SPI2->I2SPR = 2;
     assert(backend.playTone(660, 100));
+    assert(testI2sInitCount == 2);
+    assert((SPI2->I2SCFGR & SPI_I2SCFGR_I2SMOD) != 0);
     backend.stop();
     assert(testTransmitCount == 2);
-    assert(debug.errors.size() == 2); // only the invalid parameter requests
+    assert(debug.errors.size() == 2); // only invalid tone requests are errors; recovery is logged
+
+    // If HAL cannot restore I2S mode, playback must fail before starting DMA.
+    SPI2->I2SCFGR = 0;
+    SPI2->I2SPR = 2;
+    testI2sInitFailsToConfigure = true;
+    assert(!backend.playTone(880, 100));
+    assert(testTransmitCount == 2);
+    testI2sInitFailsToConfigure = false;
 }

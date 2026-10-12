@@ -23,11 +23,27 @@ struct DMA_InitTypeDef {
 struct DMA_HandleTypeDef { void* Instance{}; DMA_InitTypeDef Init{}; std::uint32_t ErrorCode = 0; };
 struct RCC_PeriphCLKInitTypeDef {
     int PeriphClockSelection{}, PLLI2SN{}, PLLI2SR{};
-    struct { int PLLI2SN{}, PLLI2SR{}; } PLLI2S{};
+    struct { int PLLI2SM{}, PLLI2SN{}, PLLI2SR{}; } PLLI2S{};
 };
 struct GPIO_InitTypeDef { int Mode{}, Pull{}, Speed{}, Alternate{}, Pin{}; };
-inline int stubSpi2;
-inline int stubDma;
+struct StubSpiRegisterBlock {
+    std::uint32_t CR2 = 0;
+    std::uint32_t SR = 0;
+    std::uint32_t I2SCFGR = 0;
+    std::uint32_t I2SPR = 2;
+};
+inline StubSpiRegisterBlock stubSpi2;
+inline int testI2sInitCount = 0;
+inline int testConfiguredPllI2sM = 0;
+inline int testI2sSelectedClockSource = -1;
+inline bool testI2sInitFailsToConfigure = false;
+inline bool testI2sInitReturnsError = false;
+#define SPI_I2SCFGR_I2SMOD (1u << 11u)
+#define SPI_I2SCFGR_I2SCFG (3u << 8u)
+#define SPI_I2SPR_I2SDIV 0xffu
+struct StubDmaStream { std::uint32_t CR = 0; };
+inline StubDmaStream stubDma;
+#define DMA_SxCR_EN 1u
 inline int stubGpio;
 #define SPI2 (&stubSpi2)
 #define DMA1_Stream4 (&stubDma)
@@ -37,6 +53,8 @@ inline int stubGpio;
 #define __HAL_RCC_DMA1_CLK_ENABLE() ((void)0)
 #define __HAL_LINKDMA(handle, field, dma) ((handle)->field = &(dma))
 #define RCC_PERIPHCLK_I2S 1
+#define RCC_I2SCLKSOURCE_PLLI2S 0
+#define __HAL_RCC_I2S_CONFIG(source) (testI2sSelectedClockSource = (source))
 #define GPIO_MODE_AF_PP 1
 #define GPIO_NOPULL 0
 #define GPIO_SPEED_FREQ_VERY_HIGH 2
@@ -44,7 +62,7 @@ inline int stubGpio;
 #define GPIO_PIN_12 (1<<12)
 #define GPIO_PIN_13 (1<<13)
 #define GPIO_PIN_15 (1<<15)
-#define I2S_MODE_MASTER_TX 1
+#define I2S_MODE_MASTER_TX (2u << 8u)
 #define I2S_STANDARD_PHILIPS 1
 #define I2S_DATAFORMAT_16B 1
 #define I2S_MCLKOUTPUT_DISABLE 0
@@ -66,13 +84,25 @@ inline std::uint16_t* testDmaBuffer = nullptr;
 inline std::uint16_t testDmaLength = 0;
 inline int testTransmitCount = 0;
 inline int testStopCount = 0;
-inline HAL_StatusTypeDef HAL_RCCEx_PeriphCLKConfig(const RCC_PeriphCLKInitTypeDef*) { return HAL_OK; }
+inline HAL_StatusTypeDef HAL_RCCEx_PeriphCLKConfig(const RCC_PeriphCLKInitTypeDef* config) {
+    testConfiguredPllI2sM = config->PLLI2S.PLLI2SM;
+    return HAL_OK;
+}
 inline void HAL_GPIO_Init(void*, GPIO_InitTypeDef*) {}
-inline HAL_StatusTypeDef HAL_DMA_Init(DMA_HandleTypeDef*) { return HAL_OK; }
+inline HAL_StatusTypeDef HAL_DMA_Init(DMA_HandleTypeDef*) { stubDma.CR = 0; return HAL_OK; }
 inline void HAL_NVIC_SetPriority(int, int, int) {}
 inline void HAL_NVIC_EnableIRQ(int) {}
 inline HAL_StatusTypeDef HAL_I2S_Init(I2S_HandleTypeDef* handle) {
+    ++testI2sInitCount;
+    if (testConfiguredPllI2sM == 0 || testI2sSelectedClockSource != RCC_I2SCLKSOURCE_PLLI2S) {
+        handle->ErrorCode = 16;
+        return HAL_ERROR;
+    }
+    if (testI2sInitReturnsError) return HAL_ERROR;
     handle->State = HAL_I2S_STATE_READY;
+    if (testI2sInitFailsToConfigure) return HAL_OK;
+    stubSpi2.I2SCFGR = SPI_I2SCFGR_I2SMOD | I2S_MODE_MASTER_TX;
+    stubSpi2.I2SPR = 48u;
     return HAL_OK;
 }
 inline HAL_StatusTypeDef HAL_I2S_Transmit_DMA(I2S_HandleTypeDef* handle, std::uint16_t* data,
@@ -81,20 +111,25 @@ inline HAL_StatusTypeDef HAL_I2S_Transmit_DMA(I2S_HandleTypeDef* handle, std::ui
     testDmaBuffer = data;
     testDmaLength = length;
     ++testTransmitCount;
+    stubDma.CR = DMA_SxCR_EN;
     handle->State = HAL_I2S_STATE_BUSY_TX;
+    stubSpi2.I2SCFGR |= 1u << 10u;
     return HAL_OK;
 }
 inline HAL_StatusTypeDef HAL_I2S_DMAStop(I2S_HandleTypeDef* handle) {
     ++testStopCount;
+    stubDma.CR = 0;
     handle->State = HAL_I2S_STATE_READY;
+    stubSpi2.I2SCFGR &= ~(1u << 10u);
     return HAL_OK;
 }
 inline void HAL_DMA_IRQHandler(DMA_HandleTypeDef*) {}
 
 // Timer 4 / WS2812 HAL surface used by the STM32 light backend tests.
-struct RCC_TypeDef { std::uint32_t CFGR = 0; };
+struct RCC_TypeDef { std::uint32_t CFGR = 0; std::uint32_t PLLCFGR = 16; };
 inline RCC_TypeDef testRcc;
 #define RCC (&testRcc)
+#define RCC_PLLCFGR_PLLM 0x3fu
 #define RCC_CFGR_PPRE1 (7u << 10u)
 #define RCC_CFGR_PPRE1_DIV1 (0u << 10u)
 inline std::uint32_t testPclk1Hz = 48000000u;
@@ -154,3 +189,41 @@ inline HAL_StatusTypeDef HAL_TIM_PWM_Stop_DMA(TIM_HandleTypeDef*, int) {
     ++testTimPwmStopCount;
     return HAL_OK;
 }
+
+// PA15 -> TIM2_CH1 hardware edge counter used by the GPIO I2S diagnostic.
+struct TimerCounterRegisters {
+    std::uint32_t CR1 = 0;
+    std::uint32_t SMCR = 0;
+    std::uint32_t CCER = 0;
+    std::uint32_t CCMR1 = 0;
+    std::uint32_t PSC = 0;
+    std::uint32_t ARR = 0;
+    std::uint32_t CNT = 0;
+    std::uint32_t EGR = 0;
+};
+inline TimerCounterRegisters testTim2;
+inline int testGpioA;
+#define TIM2 (&testTim2)
+#define GPIOA (&testGpioA)
+#define __HAL_RCC_GPIOA_CLK_ENABLE() ((void)0)
+#define __HAL_RCC_TIM2_CLK_ENABLE() ((void)0)
+#define __HAL_RCC_TIM2_CLK_DISABLE() ((void)0)
+#define GPIO_PULLDOWN 2
+#define GPIO_AF1_TIM2 1
+#define TIM_CCMR1_CC1S_0 (1u << 0u)
+#define TIM_CCER_CC1E (1u << 0u)
+#define TIM_SMCR_TS_2 (1u << 6u)
+#define TIM_SMCR_TS_0 (1u << 4u)
+#define TIM_SMCR_SMS_2 (1u << 2u)
+#define TIM_SMCR_SMS_1 (1u << 1u)
+#define TIM_SMCR_SMS_0 (1u << 0u)
+#define TIM_EGR_UG (1u << 0u)
+#define TIM_CR1_CEN (1u << 0u)
+inline void HAL_GPIO_DeInit(void*, std::uint32_t) {}
+
+#define GPIO_PIN_8 (1 << 8)
+#define GPIO_MODE_OUTPUT_PP 2
+#define GPIO_SPEED_FREQ_LOW 0
+#define GPIO_PIN_SET 1
+#define GPIO_PIN_RESET 0
+inline void HAL_GPIO_WritePin(void*, std::uint32_t, int) {}

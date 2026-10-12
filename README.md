@@ -209,3 +209,57 @@ If the wipe still appears to snake or chase across the real strip, the
 `cpx_ring_61` index-to-physical-coordinate mapping needs to be verified.
 The ring-identification test in `docs/RADIAL_RING_MAPPING.md` can distinguish
 that mapping error from the animation formula.
+
+## GPIO I2S electrical loopback (STM32 diagnostics option a)
+
+Option **a** generates a repeating 440 Hz I2S test tone and uses the STM32F411
+TIM2 external edge counter to measure PA15. Use a single jumper, testing one
+I2S output at a time: PB12->PA15 and `w` (~44.1 kHz), PB13->PA15 and `b`
+(~1.4112 MHz), PB15->PA15 and `d` (DATA toggling). Change the selected signal
+with `w`/`b`/`d`; press `q` to stop and release PA15. This requires no WAV
+file, SD card contents, button, scope, or MAX98357A. See
+`docs/stm32f411_wiring.md` for wiring details and limitations.
+
+## STM32 audio initialization retry (diagnostic update)
+
+An STM32 audio service may be retained even when its first `begin()` fails.
+The `a` diagnostic now attempts a safe full I2S2/DMA reinitialization before
+starting the tone, instead of rejecting a non-READY HAL handle without a retry.
+Initialization failures include the HAL handle state/error and the peripheral
+register state in the serial log. If this diagnostic still cannot start, capture
+both the audio-related **boot messages** and the messages printed by `a`.
+See `docs/stm32f411_i2s_register_recovery.md` for the procedure.
+
+### Standalone STM32F411 I2S hardware check
+
+The STM32F411 I2S configuration was missing `PLLI2SM` (the I2S PLL input
+prescaler). This causes `HAL_I2S_Init()` to report error 16 (prescaler
+calculation error) before SPI2 is put into I2S mode. The normal audio backend
+now uses the STM32duino system PLL input divider and explicitly chooses PLLI2S
+as the peripheral clock source.
+
+For a smaller, independent hardware test, flash one of:
+
+```powershell
+pio run -e stm32f411_blackpill_i2s_example -t upload
+# or
+pio run -e stm32f411_devebox_i2s_example -t upload
+```
+
+After USB CDC reconnects, open the serial monitor at 115200 baud. The example
+runs a continuous 440 Hz tone with *blocking* HAL I2S transmission. It does
+not initialize DMA, SD storage, button inputs, light drivers, or the rest of
+the blaster firmware. Its code is `src/tests/Stm32I2sMinimalExample.cpp`.
+
+The I2S output pins are PB12 = WS/LRC, PB13 = BCLK, PB15 = DATA. On a
+44.1-kHz stereo 16-bit bus, expected WS is approximately 44.1 kHz and BCLK
+approximately 1.4112 MHz. A compatible MAX98357A can be connected to the
+three pins to test physical sound output. The standalone sketch intentionally
+uses an attenuated sine wave to avoid starting at maximum audio level.
+
+Restore the application/diagnostics by flashing
+`stm32f411_blackpill_tests` (or the corresponding normal environment).
+
+The host CMake/CTest suite includes `Stm32I2sClockConfigTest` to guard against
+omitting the divider again. Tests run on host mocks; on-board I2S signals and
+sound output still require hardware verification.

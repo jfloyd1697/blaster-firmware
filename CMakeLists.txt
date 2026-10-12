@@ -63,6 +63,16 @@ target_link_libraries(BlasterApp
 )
 include(CTest)
 if(BUILD_TESTING AND BLASTER_PLATFORM STREQUAL "PC")
+    add_executable(WeaponSwitchCleanupTest tests/WeaponSwitchCleanupTest.cpp)
+    target_link_libraries(WeaponSwitchCleanupTest PRIVATE core)
+    add_test(NAME weapon_switch_cleanup COMMAND WeaponSwitchCleanupTest)
+    set_tests_properties(weapon_switch_cleanup PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+    add_executable(MergedLibraryTest tests/MergedLibraryTest.cpp)
+    target_link_libraries(MergedLibraryTest PRIVATE core)
+    add_test(NAME merged_library COMMAND MergedLibraryTest)
+    set_tests_properties(merged_library PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
     add_executable(AssetLayoutTest tests/AssetLayoutTest.cpp)
     target_link_libraries(AssetLayoutTest PRIVATE core)
     add_test(NAME asset_layout COMMAND AssetLayoutTest)
@@ -80,6 +90,10 @@ if(BUILD_TESTING AND BLASTER_PLATFORM STREQUAL "PC")
     add_executable(AnalogButtonLadderTest tests/AnalogButtonLadderTest.cpp)
     target_link_libraries(AnalogButtonLadderTest PRIVATE core)
     add_test(NAME analog_button_ladder COMMAND AnalogButtonLadderTest)
+
+    add_executable(LightOutputCurveTest tests/LightOutputCurveTest.cpp)
+    target_include_directories(LightOutputCurveTest PRIVATE lib/core/include)
+    add_test(NAME light_output_curve COMMAND LightOutputCurveTest)
 
     add_executable(CompiledAssetsTest tests/CompiledAssetsTest.cpp)
     target_link_libraries(CompiledAssetsTest PRIVATE core)
@@ -108,6 +122,28 @@ if(BUILD_TESTING AND BLASTER_PLATFORM STREQUAL "PC")
     target_link_libraries(Stm32ToneBackendTest PRIVATE core)
     add_test(NAME stm32_tone_backend COMMAND Stm32ToneBackendTest)
 
+    add_executable(Stm32I2sClockConfigTest
+        tests/Stm32I2sClockConfigTest.cpp
+        lib/stm32f411_platform/src/audio/Stm32F411AudioBackend.cpp
+    )
+    target_include_directories(Stm32I2sClockConfigTest BEFORE PRIVATE
+        tests/stubs
+        lib/stm32f411_platform/include
+    )
+    target_link_libraries(Stm32I2sClockConfigTest PRIVATE core)
+    add_test(NAME stm32_i2s_clock_config COMMAND Stm32I2sClockConfigTest)
+
+    add_executable(Stm32I2sStartupRecoveryTest
+        tests/Stm32I2sStartupRecoveryTest.cpp
+        lib/stm32f411_platform/src/audio/Stm32F411AudioBackend.cpp
+    )
+    target_include_directories(Stm32I2sStartupRecoveryTest BEFORE PRIVATE
+        tests/stubs
+        lib/stm32f411_platform/include
+    )
+    target_link_libraries(Stm32I2sStartupRecoveryTest PRIVATE core)
+    add_test(NAME stm32_i2s_startup_recovery COMMAND Stm32I2sStartupRecoveryTest)
+
     add_executable(Stm32LightBackendTest
         tests/Stm32LightBackendTest.cpp
         lib/stm32f411_platform/src/lights/Stm32F411LightBackend.cpp
@@ -128,6 +164,20 @@ if(BUILD_TESTING AND BLASTER_PLATFORM STREQUAL "PC")
     target_link_libraries(PlatformDiagnosticsTest PRIVATE core)
     add_test(NAME platform_diagnostics COMMAND PlatformDiagnosticsTest)
     set_tests_properties(platform_diagnostics PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+    add_executable(Stm32I2sCounterHalTest
+        tests/Stm32I2sCounterHalTest.cpp
+        lib/stm32f411_platform/src/diagnostics/I2sGpioLoopback.cpp
+    )
+    target_include_directories(Stm32I2sCounterHalTest BEFORE PRIVATE
+        lib/stm32f411_platform/include
+        tests/stubs
+    )
+    add_test(NAME stm32_i2s_counter_hal COMMAND Stm32I2sCounterHalTest)
+
+    add_executable(I2sGpioLoopbackMathTest tests/I2sGpioLoopbackMathTest.cpp)
+    target_include_directories(I2sGpioLoopbackMathTest PRIVATE lib/stm32f411_platform/include)
+    add_test(NAME i2s_gpio_loopback_math COMMAND I2sGpioLoopbackMathTest)
 
     add_executable(ToneGeneratorTest tests/ToneGeneratorTest.cpp)
     target_link_libraries(ToneGeneratorTest PRIVATE core)

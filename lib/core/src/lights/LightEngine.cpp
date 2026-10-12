@@ -79,6 +79,8 @@ bool LightEngine::playSequenceFile(
 void LightEngine::stopSequence() {
     m_stream.reset();
     m_sequence.reset();
+    m_basePattern.reset();
+    m_overridePattern.reset();
     clear();
 }
 

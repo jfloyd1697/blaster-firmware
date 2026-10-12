@@ -60,3 +60,43 @@ The STM32 ADC is 12-bit, so the button-ladder thresholds are scaled for the 0-40
 ## DevEBox onboard W25Q32
 
 The DevEBox has onboard W25Q32 flash, but it is intentionally not part of the blaster storage backend yet. The supplied board image does not document that flash chip's MCU pin mapping, and the existing audio asset set is larger than the device anyway. External microSD is therefore the canonical STM32 asset store.
+
+## I2S GPIO loopback diagnostic
+
+Use the `stm32f411_blackpill_tests` or `stm32f411_devebox_tests` firmware.
+Select **a** to start a 440 Hz generated tone and the TIM2 hardware edge
+counter on **PA15**. Move **one** short jumper at a time:
+
+| Test command | Jumper | Expected reading |
+| --- | --- | --- |
+| `w` | PB12 (WS/LRCLK) -> PA15 | ~44,100 Hz |
+| `b` | PB13 (BCLK) -> PA15 | ~1,411,200 Hz |
+| `d` | PB15 (I2S DATA) -> PA15 | Nonzero rising edges while tone plays |
+| `q` | Remove jumper; stop test | Returns to diagnostics menu |
+
+PA15 is used only as the temporary TIM2_CH1 capture input; trigger PA0,
+ladder PA1, SD SPI1, and the LED TIM4 driver remain unchanged. Do **not**
+connect output pins to each other, to a voltage supply, or to ground.
+Keep the jumper short. No external power or resistor is necessary for a
+3.3 V STM32-to-STM32 GPIO connection. The PA15 input is pulled down while
+testing to suppress false edge counts when no jumper is connected.
+
+The counter is implemented using TIM2 in external clock mode 1: it counts
+rising edges without CPU interrupts or GPIO polling. A passing WS/BCLK check
+proves those waveforms reach PA15 and have approximately the right frequency.
+A DATA activity report only proves toggling; it does **not** validate I2S
+framing, data integrity, amplifier shutdown, power, or speaker output.
+If all lines test correctly but the speaker is silent, check the amplifier
+VIN/GND/SD state and speaker wiring independently.
+
+### Separating GPIO loopback faults from I2S setup failures
+
+In diagnostic `a`, connect **PB8 -> PA15**, then enter `t`. The firmware
+outputs 250 low-frequency GPIO pulses and counts them in TIM2. Approximately
+250 pulses proves the jumper and TIM2 input are functioning independently of I2S.
+Remove that jumper before reconnecting PB12, PB13, or PB15 to PA15.
+
+Enter `s` to inspect live PLLI2S, I2S enable, transmit DMA request, stream enable,
+NDTR movement, and AF5 mode of PB12/PB13/PB15. These hardware states are more
+meaningful than the 'tone requested' log. Measure `w`, `b`, or `d` only after
+confirming the reference test and the live hardware status.

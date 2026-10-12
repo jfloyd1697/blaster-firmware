@@ -83,12 +83,15 @@ void Blaster::selectPreviousBank() {
 }
 
 void Blaster::equipCurrentWeapon() {
+    // A new weapon must never inherit audio, animation, or pending events
+    // from the previously equipped weapon (including failed loads).
+    if (m_services.audio) m_services.audio->stop();
+    if (m_services.lights) m_services.lights->stopSequence();
+    m_behaviorController.reset();
+    m_currentBehavior.reset();
+
     const WeaponEntry* entry = currentWeapon();
-    if (entry == nullptr || !m_services.textLoader) {
-        m_currentBehavior.reset();
-        m_behaviorController.reset();
-        return;
-    }
+    if (entry == nullptr || !m_services.textLoader) return;
 
     const std::string text = m_services.textLoader->loadText(entry->behaviorPath);
     if (text.empty()) {
@@ -99,12 +102,8 @@ void Blaster::equipCurrentWeapon() {
     if (entry->behaviorPath.size() < 4 || entry->behaviorPath.substr(entry->behaviorPath.size() - 4) != ".bin" ||
         !weapon_behavior::WeaponBehaviorParser::isBinaryFormat(text)) {
         if (m_services.debug) m_services.debug->error("Blaster: expected WFSMBIN1: " + entry->behaviorPath);
-        m_currentBehavior.reset();
-        m_behaviorController.reset();
         return;
     }
-    // Dispose the previous controller before replacing the active behavior.
-    m_behaviorController.reset();
     m_currentBehavior = weapon_behavior::WeaponBehaviorParser::parse(text, m_services.debug.get());
     const auto validation = weapon_behavior::validateWeaponBehavior(*m_currentBehavior);
     if (!validation.ok) {

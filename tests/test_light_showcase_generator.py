@@ -77,14 +77,14 @@ class RadialDiagnosticTest(unittest.TestCase):
         self.assertLess(center, 0.42)
 
     def test_wipe_sd_binary_matches_generator(self):
-        payload = (ROOT / "assets/lights/diagnostics/wipe.bin").read_bytes()
+        payload = (ROOT / "sdcard/assets/lights/diagnostics/wipe.bin").read_bytes()
         self.assertEqual(payload, GENERATOR.encode("wipe", self.leds))
         self.assertEqual(struct.unpack_from("<8sHHII", payload, 0),
                          (b"WFLSEQ01", 1, 61, 60, 3000))
 
     def test_sd_binaries_match_generator(self):
         for name in ("radial_pulse", "ring_identification"):
-            payload = (ROOT / "assets/lights/diagnostics" / f"{name}.bin").read_bytes()
+            payload = (ROOT / "sdcard/assets/lights/diagnostics" / f"{name}.bin").read_bytes()
             self.assertEqual(payload, GENERATOR.encode(name, self.leds))
             self.assertEqual(
                 struct.unpack_from("<8sHHII", payload, 0),

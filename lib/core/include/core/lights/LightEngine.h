@@ -29,6 +29,7 @@ public:
     bool playSequenceFile(const std::string& path, ITextResourceLoader& loader, LightSequencePlayback playback) override;
     bool requestSequenceFile(const std::string& path, ITextResourceLoader& loader, LightSequencePlayback playback) override;
     void stopSequence() override;
+    void displayDirectFrame(std::vector<LightColor> pixels);
     void update() override;
 
     // Perform at most one SD frame read, outside the time-critical render path.
@@ -103,6 +104,7 @@ private:
     std::optional<StreamingSequence> m_stream;
     std::optional<PendingSequence> m_pendingSequence;
     std::vector<LightColor> m_lastPixels;
+    std::optional<std::vector<LightColor>> m_directFrame;
     std::uint32_t m_missedPrefetches = 0;
 };
 

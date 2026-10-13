@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = ROOT / "tools/light_showcase/cpx_ring_61.json"
-OUTPUT = ROOT / "assets/lights/diagnostics"
+OUTPUT = ROOT / "sdcard/assets/lights/diagnostics"
 LED_COUNT = 61
 FRAME_MS = 50
 FRAME_COUNT = 60

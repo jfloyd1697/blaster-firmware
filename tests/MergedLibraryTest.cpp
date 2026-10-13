@@ -19,15 +19,15 @@ public:
     std::size_t largestRead = 0;
 
     std::string loadText(const std::string& relative) override {
-        std::ifstream source(relative, std::ios::binary);
+        std::ifstream source(std::filesystem::path("sdcard") / relative, std::ios::binary);
         return {std::istreambuf_iterator<char>(source), std::istreambuf_iterator<char>()};
     }
     bool resourceExists(const std::string& relative) const override {
-        return std::filesystem::is_regular_file(relative);
+        return std::filesystem::is_regular_file(std::filesystem::path("sdcard") / relative);
     }
     std::string readRange(const std::string& relative, std::size_t offset, std::size_t count) override {
         if (count > largestRead) largestRead = count;
-        std::ifstream input(relative, std::ios::binary);
+        std::ifstream input(std::filesystem::path("sdcard") / relative, std::ios::binary);
         if (!input || !input.seekg(static_cast<std::streamoff>(offset))) return {};
         std::string data(count, '\0');
         input.read(data.data(), static_cast<std::streamsize>(count));

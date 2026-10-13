@@ -54,6 +54,7 @@ void LightEngine::flash() {
 }
 
 void LightEngine::playSequence(const LightSequence& sequence, const bool loop) {
+    m_directFrame.reset();
     m_pendingSequence.reset();
     m_stream.reset();
     m_sequence = ActiveSequence{sequence, nowMs(), loop};
@@ -70,6 +71,7 @@ bool LightEngine::playSequenceFile(
 
 bool LightEngine::requestSequenceFile(
     const std::string& path, ITextResourceLoader& loader, const LightSequencePlayback playback) {
+    m_directFrame.reset();
     m_pendingSequence = PendingSequence{path, &loader, playback};
     m_stream.reset();
     m_sequence.reset();
@@ -142,7 +144,17 @@ void LightEngine::prefetchNextFrame() {
     stream.prefetched = true;
 }
 
+void LightEngine::displayDirectFrame(std::vector<LightColor> pixels) {
+    m_directFrame = std::move(pixels);
+    m_pendingSequence.reset();
+    m_stream.reset();
+    m_sequence.reset();
+    m_basePattern.reset();
+    m_overridePattern.reset();
+}
+
 void LightEngine::stopSequence() {
+    m_directFrame.reset();
     m_pendingSequence.reset();
     m_stream.reset();
     m_sequence.reset();
@@ -152,6 +164,10 @@ void LightEngine::stopSequence() {
 }
 
 void LightEngine::update() {
+    if (m_directFrame) {
+        renderPixels(*m_directFrame);
+        return;
+    }
     const std::uint32_t now = nowMs();
 
     if (m_overridePattern.has_value()) {

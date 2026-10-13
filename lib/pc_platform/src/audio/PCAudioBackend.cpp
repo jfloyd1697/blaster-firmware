@@ -20,8 +20,9 @@ void PCAudioBackend::update() {
 }
 
 void PCAudioBackend::playSound(const std::string &file, const bool loop, bool blocking) {
+    const std::string diskPath = (std::filesystem::path("sdcard") / file).string();
     if (m_debug != nullptr) {
-        if (!std::filesystem::exists(file)) {
+        if (!std::filesystem::exists(diskPath)) {
             m_debug->error("PCAudio: Sound file NOT FOUND: " + file);
         } else {
             m_debug->log(
@@ -36,7 +37,7 @@ void PCAudioBackend::playSound(const std::string &file, const bool loop, bool bl
         flags |= SND_LOOP;
     }
 
-    PlaySoundA(file.c_str(), nullptr, flags);
+    PlaySoundA(diskPath.c_str(), nullptr, flags);
 }
 
 void PCAudioBackend::stop() {

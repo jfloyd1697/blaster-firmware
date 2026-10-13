@@ -54,7 +54,7 @@ D1        →   CS          Chip select
 * Place file at:
 
   ```
-  /assets/weapon_profiles.json
+  /assets/weapons/weapons_manifest.bin
   ```
 
 ---
@@ -157,7 +157,7 @@ GND      → EVERYTHING
 Before testing:
 
 * [ ] SD card formatted FAT32
-* [ ] `/weapon_profiles.json` exists
+* [ ] `/assets/weapons/weapons_manifest.bin` exists
 * [ ] WAV files present
 * [ ] Speaker connected
 * [ ] I2S wires short

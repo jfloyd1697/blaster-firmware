@@ -32,6 +32,7 @@
 #include "platform/stm32f411/Stm32F411Platform.h"
 #include "core/lights/LightEngine.h"
 #include "realtime/ControlSchedule.h"
+#include "Stm32Bridge.h"
 #include <Arduino.h>
 #endif
 
@@ -41,10 +42,7 @@ namespace {
     std::unique_ptr<FallbackMode> fallbackMode;
     bool appInitialized = false;
 #ifdef PLATFORM_STM32F411
-    enum class BridgeMode { Normal, RemoteInput, DirectControl };
-    BridgeMode bridgeMode = BridgeMode::Normal;
-    std::uint32_t lastBridgeHeartbeat = 0;
-    String bridgeLine;
+    std::unique_ptr<Stm32Bridge> hardwareBridge;
     realtime::ControlSchedule controlSchedule;
     std::uint32_t maximumControlExecutionUs = 0;
     std::uint32_t maximumForegroundBlockUs = 0;
@@ -56,14 +54,14 @@ namespace {
     constexpr std::uint32_t kBackgroundMinimumSlackUs = 400;
     constexpr std::uint32_t kDisplayMinimumSlackUs = 500;
 
-    void bridgePoll();
+    bool initializeApp();
 
     void runControl() {
         const std::uint32_t start = micros();
         if (services.input) services.input->update();
-        if (blaster && bridgeMode != BridgeMode::DirectControl) {
+        if (blaster && hardwareBridge && !hardwareBridge->directControl() && !hardwareBridge->maintenanceActive()) {
             blaster->update();
-        } else if (fallbackMode) {
+        } else if (fallbackMode && hardwareBridge && !hardwareBridge->maintenanceActive()) {
             fallbackMode->update();
         }
         const std::uint32_t executionUs = micros() - start;
@@ -87,7 +85,8 @@ namespace {
             if (elapsed > maximumAudioServiceUs) maximumAudioServiceUs = elapsed;
         }
         if (controlSchedule.slack(micros(), kControlPeriodUs) < kBackgroundMinimumSlackUs) return;
-        if (blaster && blaster->hasPendingWeaponLoad()) {
+        if (blaster && hardwareBridge && !hardwareBridge->maintenanceActive() &&
+            blaster->hasPendingWeaponLoad()) {
             const std::uint32_t before = micros();
             blaster->servicePendingWeaponLoad();
             const std::uint32_t elapsed = micros() - before;
@@ -95,14 +94,26 @@ namespace {
             ++weaponLoads;
             return;
         }
-        if (auto* lights = static_cast<LightEngine*>(services.lights.get())) {
-            const std::uint32_t before = micros();
-            lights->prefetchNextFrame();
-            const std::uint32_t elapsed = micros() - before;
-            if (elapsed > maximumForegroundBlockUs) maximumForegroundBlockUs = elapsed;
-            ++backgroundReadCount;
+        if (hardwareBridge && !hardwareBridge->maintenanceActive()) {
+            if (auto* lights = static_cast<LightEngine*>(services.lights.get())) {
+                const std::uint32_t before = micros();
+                lights->prefetchNextFrame();
+                const std::uint32_t elapsed = micros() - before;
+                if (elapsed > maximumForegroundBlockUs) maximumForegroundBlockUs = elapsed;
+                ++backgroundReadCount;
+            }
         }
-        if (controlSchedule.slack(micros(), kControlPeriodUs) >= kBackgroundMinimumSlackUs) bridgePoll();
+        if (hardwareBridge && controlSchedule.slack(micros(), kControlPeriodUs) >= kBackgroundMinimumSlackUs) {
+            hardwareBridge->service();
+            if (hardwareBridge->takeActivate()) {
+                // Reload files only after all SD handles have been released.
+                blaster.reset();
+                fallbackMode.reset();
+                appInitialized = initializeApp();
+                hardwareBridge->finishedActivation();
+                return;
+            }
+        }
         // Lowest-priority, bounded I2C transfer. At most 8 display-data bytes
         // per pass; do not update the OLED in the control tick or an ISR.
         if (services.display && controlSchedule.slack(micros(), kControlPeriodUs) >= kDisplayMinimumSlackUs) {
@@ -110,103 +121,6 @@ namespace {
         }
     }
 
-    void bridgeReply(const String& message) {
-        Serial.print("@BRIDGE ");
-        Serial.println(message);
-    }
-
-    void bridgeSetMode(const BridgeMode next) {
-        if (services.audio) services.audio->stop();
-        if (services.lights) services.lights->stopSequence();
-        if (services.input) services.input->setRemoteInputEnabled(next == BridgeMode::RemoteInput);
-        bridgeMode = next;
-        if (services.display) {
-            const DisplayControlMode mode = next == BridgeMode::RemoteInput
-                ? DisplayControlMode::RemoteInput
-                : next == BridgeMode::DirectControl ? DisplayControlMode::DirectControl
-                    : DisplayControlMode::Normal;
-            services.display->setControlMode(mode);
-        }
-        lastBridgeHeartbeat = millis();
-        bridgeReply("OK MODE");
-    }
-
-    void bridgeCommand(const String& line) {
-        if (line == "HELLO") {
-            bridgeReply("HELLO 1 STM32F411 INPUT DIRECT");
-        } else if (line == "MODE NORMAL") {
-            bridgeSetMode(BridgeMode::Normal);
-        } else if (line == "MODE INPUT") {
-            bridgeSetMode(BridgeMode::RemoteInput);
-        } else if (line == "MODE DIRECT") {
-            bridgeSetMode(BridgeMode::DirectControl);
-        } else if (line == "STATS") {
-            bridgeReply("STATS control_ticks=" + String(controlSchedule.ticks()) +
-                " missed_ticks=" + String(controlSchedule.missedTicks()) +
-                " max_lateness_us=" + String(controlSchedule.maximumLatenessUs()) +
-                " max_control_us=" + String(maximumControlExecutionUs) +
-                " max_background_us=" + String(maximumForegroundBlockUs) +
-                " max_audio_us=" + String(maximumAudioServiceUs) +
-                " max_weapon_load_us=" + String(maximumWeaponLoadUs) +
-                " weapon_loads=" + String(weaponLoads) +
-                " background_passes=" + String(backgroundReadCount) +
-                " light_misses=" + String(services.lights ?
-                    static_cast<LightEngine*>(services.lights.get())->missedPrefetchCount() : 0));
-        } else if (line == "PING") {
-            lastBridgeHeartbeat = millis();
-            bridgeReply("PONG");
-        } else if (line.startsWith("INPUT ") && bridgeMode == BridgeMode::RemoteInput) {
-            const int separator = line.indexOf(' ', 6);
-            if (separator < 0 || !services.input) { bridgeReply("ERR INPUT"); return; }
-            const String name = line.substring(6, separator);
-            const String value = line.substring(separator + 1);
-            ButtonID id;
-            if (name == "TRIGGER") id = ButtonID::Trigger;
-            else if (name == "RELOAD") id = ButtonID::Reload;
-            else if (name == "NEXT") id = ButtonID::NextWeapon;
-            else if (name == "PREVIOUS") id = ButtonID::PreviousWeapon;
-            else { bridgeReply("ERR INPUT"); return; }
-            if (value != "0" && value != "1") { bridgeReply("ERR VALUE"); return; }
-            services.input->setRemoteButton(id, value == "1");
-            lastBridgeHeartbeat = millis();
-            bridgeReply("OK INPUT");
-        } else if (line == "STOP" && bridgeMode == BridgeMode::DirectControl) {
-            if (services.audio) services.audio->stop();
-            if (services.lights) services.lights->stopSequence();
-            bridgeReply("OK STOP");
-        } else if (line.startsWith("AUDIO ") && bridgeMode == BridgeMode::DirectControl) {
-            if (services.audio) services.audio->playSound(std::string(line.substring(6).c_str()), false, false);
-            bridgeReply("OK AUDIO");
-        } else if (line.startsWith("LIGHT ") && bridgeMode == BridgeMode::DirectControl) {
-            const bool ok = services.lights && services.textLoader &&
-                services.lights->playSequenceFile(std::string(line.substring(6).c_str()), *services.textLoader, LightSequencePlayback{});
-            bridgeReply(ok ? "OK LIGHT" : "ERR LIGHT");
-        } else {
-            bridgeReply("ERR COMMAND_OR_MODE");
-        }
-    }
-
-    void bridgePoll() {
-        // A busy USB host must not monopolize the control loop.
-        std::size_t bytesProcessed = 0;
-        while (Serial.available() && bytesProcessed++ < 48u) {
-            const char ch = static_cast<char>(Serial.read());
-            if (ch == '\n') {
-                if (bridgeLine.length() && bridgeLine[bridgeLine.length() - 1] == '\r')
-                    bridgeLine.remove(bridgeLine.length() - 1);
-                if (bridgeLine.length()) bridgeCommand(bridgeLine);
-                bridgeLine = "";
-            } else if (bridgeLine.length() < 240 && ch >= 32 && ch <= 126) {
-                bridgeLine += ch;
-            } else if (ch != '\r') {
-                bridgeLine = "";
-            }
-        }
-        if (bridgeMode != BridgeMode::Normal && millis() - lastBridgeHeartbeat > 1500) {
-            bridgeSetMode(BridgeMode::Normal);
-            bridgeReply("TIMEOUT");
-        }
-    }
 #endif
 
     bool initializeApp() {
@@ -338,6 +252,7 @@ void loop() {
 
 void setup() {
     services = Stm32F411PlatformFactory::createConfiguredBoard();
+    hardwareBridge = std::make_unique<Stm32Bridge>(services);
     appInitialized = initializeApp();
 
     if (!appInitialized && services.debug) {

@@ -32,8 +32,8 @@ if(BLASTER_PLATFORM STREQUAL "PC")
 
     add_custom_command(TARGET BlasterApp POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets
-            $<TARGET_FILE_DIR:BlasterApp>/assets
+            ${CMAKE_SOURCE_DIR}/sdcard
+            $<TARGET_FILE_DIR:BlasterApp>/sdcard
     )
 
 elseif(BLASTER_PLATFORM STREQUAL "ESP")
@@ -67,6 +67,9 @@ target_link_libraries(BlasterApp
 )
 include(CTest)
 if(BUILD_TESTING AND BLASTER_PLATFORM STREQUAL "PC")
+    add_executable(BridgeProtocolTest tests/BridgeProtocolTest.cpp)
+    add_test(NAME bridge_protocol COMMAND BridgeProtocolTest)
+
     add_executable(WeaponSwitchCleanupTest tests/WeaponSwitchCleanupTest.cpp)
     target_link_libraries(WeaponSwitchCleanupTest PRIVATE core)
     add_test(NAME weapon_switch_cleanup COMMAND WeaponSwitchCleanupTest)

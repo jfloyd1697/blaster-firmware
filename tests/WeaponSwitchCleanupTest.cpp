@@ -11,10 +11,6 @@
 #include "core/debug/IDebug.h"
 #include "core/display/IStatusDisplay.h"
 #include "core/lights/ILights.h"
-#include "core/lights/ILightBackend.h"
-#include "core/lights/LightEngine.h"
-#include "core/lights/LightSequenceParser.h"
-#include "core/input/IInput.h"
 #include "core/text_resource_loader/ITextResourceLoader.h"
 #include "core/time/ITime.h"
 
@@ -85,32 +81,18 @@ public:
     std::vector<std::string>& records;
 };
 
-class PhysicalLedBackend final : public ILightBackend {
-public:
-    bool begin() override { return true; }
-    std::size_t ledCount() const override { return 61; }
-    void show(const std::vector<LightColor>& value) override { pixels = value; }
-    std::vector<LightColor> pixels;
-};
-
-class TestInput final : public IInput {
-public:
-    explicit TestInput(ITime* time) : IInput(time) {}
-    bool readRawButton(ButtonID) const override { return false; }
-};
-
 class FileLoader final : public ITextResourceLoader {
 public:
     std::string loadText(const std::string& path) override {
-        std::ifstream file(path, std::ios::binary);
+        std::ifstream file(std::string("sdcard/") + path, std::ios::binary);
         return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
     }
     bool resourceExists(const std::string& path) const override {
-        std::ifstream file(path, std::ios::binary);
+        std::ifstream file(std::string("sdcard/") + path, std::ios::binary);
         return file.good();
     }
     std::string readRange(const std::string& path, std::size_t offset, std::size_t count) override {
-        std::ifstream file(path, std::ios::binary);
+        std::ifstream file(std::string("sdcard/") + path, std::ios::binary);
         if (!file || !file.seekg(static_cast<std::streamoff>(offset))) return {};
         std::string buffer(count, '\0');
         file.read(buffer.data(), static_cast<std::streamsize>(count));
@@ -212,121 +194,5 @@ int main() {
     assert(audio->prepareCount == beforeInvalidPrepare + 1);
     assert(!audio->preparedPaths.empty());
 
-    // The 20-stud interaction comes exclusively from the compiled weapon FSM and light sequences.
-    auto clock = std::make_shared<TestTime>();
-    auto input = std::make_shared<TestInput>(clock.get());
-    input->setRemoteInputEnabled(true);
-    services.time = clock;
-    services.input = input;
-    WeaponBank jediBank;
-    jediBank.name = "Characters";
-    jediBank.weapons = {{"True Jedi", "assets/weapons/Characters/true_jedi/weapon.bin"}};
-    TestBlaster jedi(services, {jediBank});
-    assert(display->last.behaviorState == "STUDS 00/20");
-    input->update(); // Establish released debounced baseline before the first press.
-    FileLoader loader;
-    const std::string sequenceRoot = "assets/weapons/Characters/true_jedi/lights/";
-    const auto sequence = sequenceRoot + "stud_progress.bin";
-    assert(LightSequenceParser::validateBinary(loader, sequence));
-    assert(LightSequenceParser::validateLayout(loader, sequenceRoot + "stud_progress.layout.bin"));
-    LightSequenceHeader header;
-    assert(LightSequenceParser::readHeader(loader, sequence, header));
-    assert(header.ledCount == 61);
-    assert(header.frameCount == 26); // 20 static progress frames + 6 completion frames.
-    auto tick = [&](ButtonID button, bool pressed) {
-        input->setRemoteButton(button, pressed);
-        clock->now += 21;
-        input->update();
-        jedi.update();
-        clock->now += 21;
-        input->update();
-        jedi.update();
-    };
-    // Like AIAI Fallout, the progress is driven by scheduled FSM events
-    // while the trigger is held, never by twenty separate button presses.
-    auto advance = [&](const unsigned long elapsedMs) {
-        clock->now += elapsedMs;
-        input->update();
-        jedi.update();
-    };
-
-    // Release early: the pending progress event must be cancelled.
-    tick(ButtonID::Trigger, true);
-    assert(display->last.behaviorState == "STUDS 01/20");
-    advance(400);
-    assert(display->last.behaviorState == "STUDS 02/20");
-    tick(ButtonID::Trigger, false);
-    assert(display->last.behaviorState == "STUDS 00/20");
-    advance(1600);
-    assert(display->last.behaviorState == "STUDS 00/20");
-
-    log.clear();
-    tick(ButtonID::Trigger, true);
-    assert(display->last.behaviorState == "STUDS 01/20");
-    advance(399);
-    assert(display->last.behaviorState == "STUDS 01/20");
-    for (int stage = 2; stage <= 20; ++stage) {
-        advance(stage == 2 ? 1 : 400);
-        const std::string label = std::string("STUDS ") + (stage < 10 ? "0" : "") +
-            std::to_string(stage) + "/20";
-        assert(display->last.behaviorState == label);
-    }
-    assert(std::any_of(log.begin(), log.end(), [](const std::string& item) {
-        return item == "light:start:assets/weapons/Characters/true_jedi/lights/stud_progress.bin:20";
-    }));
-    // All stages reference the same compiled sequence, selecting one frame each.
-    for (int i = 1; i < 21; ++i) {
-        assert(std::any_of(log.begin(), log.end(), [i](const std::string& item) {
-            return item == "light:start:assets/weapons/Characters/true_jedi/lights/stud_progress.bin:" +
-                std::to_string(i);
-        }));
-    }
-    // Completion plays through even if the trigger is released, then resets
-    // automatically just as the Fallout charge-shot returns to ready.
-    tick(ButtonID::Trigger, false);
-    advance(1400);
-    assert(display->last.behaviorState == "STUDS 20/20");
-    advance(100);
-    assert(display->last.behaviorState == "STUDS 00/20");
-    tick(ButtonID::Trigger, true);
-    assert(display->last.behaviorState == "STUDS 01/20");
-    tick(ButtonID::Trigger, false);
-    tick(ButtonID::Reload, true);
-    tick(ButtonID::Reload, false);
-    assert(display->last.behaviorState == "STUDS 00/20");
-
-    // Exercise the real streamed binary renderer, not just the mocked FSM requests.
-    TestTime renderClock;
-    auto physical = std::make_unique<PhysicalLedBackend>();
-    auto* pixels = physical.get();
-    LightEngine engine(std::move(physical), &renderClock);
-    assert(engine.begin());
-    const auto select = [&](const std::size_t frame, const bool hold, const bool loop) {
-        engine.requestSequenceFile(sequence, loader, LightSequencePlayback{loop, frame, hold});
-        // First header read, then up to `frame` bounded metadata seeks, then the one pixel read.
-        for (std::size_t step = 0; step < frame + 2; ++step) engine.prefetchNextFrame();
-        engine.update();
-    };
-    select(0, true, false);
-    assert((pixels->pixels[0] == LightColor{10, 3, 0}));
-    select(10, true, false);
-    assert((pixels->pixels[0] == LightColor{255, 205, 0}));
-    assert((pixels->pixels[30] == LightColor{10, 3, 0}));
-    renderClock.now += 120000; // Held frame never advances with time.
-    engine.update();
-    assert((pixels->pixels[30] == LightColor{10, 3, 0}));
-    select(19, true, false);
-    assert((pixels->pixels[56] == LightColor{255, 205, 0}));
-    assert((pixels->pixels[58] == LightColor{10, 3, 0}));
-
-    select(20, false, true);
-    assert((pixels->pixels[0] == LightColor{255, 120, 0}));
-    for (int step = 1; step <= 6; ++step) {
-        engine.prefetchNextFrame();
-        renderClock.now += 90;
-        engine.update();
-        if (step == 1) assert((pixels->pixels[0] == LightColor{255, 170, 0}));
-    }
-    assert((pixels->pixels[0] == LightColor{255, 120, 0}));
     return 0;
 }

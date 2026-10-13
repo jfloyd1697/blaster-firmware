@@ -1,37 +1,17 @@
-# Updated C++ weapon behavior bundle
+# Blaster firmware
 
-This bundle captures the current direction discussed in chat:
+The **deployable SD-card image** lives under `sdcard/`, separate from source assets and legacy files.
 
-- `weapons_manifest.json` points directly to per-weapon `behavior.json` files
-- `weapon_behavior` library stays focused on behavior parsing + validation
-- `core` owns the runtime/controller, load helpers, and manifest/weapon loading
-- looping audio is supported through `playSound(file, loop)` down into the backend
-- `schedule_event` is supported in the controller for simple timed transitions
+- `sdcard/assets/weapons/weapons_manifest.bin`: compiled six-bank manifest.
+- `sdcard/assets/weapons/<bank>/<weapon>/weapon.bin`: compiled weapon FSMs.
+- `sdcard/assets/audio/shared/`: converted 44.1 kHz PCM audio used by compiled weapons.
+- `sdcard/assets/lights/shared/`: compiled LED sequences and layout metadata.
+- `sdcard/assets/lights/diagnostics/`: compiled light diagnostic sequences.
+- `resources/legacy/`: archived source-format data, not part of the SD image.
 
-## Assumptions you may need to align
+Editable source weapon YAML, WAVs, and light projects live in the **separate editor project** under `assets/`. Compile them with the editor, using `firmware/sdcard` as the target directory. On a real microSD card or over the USB SD file manager, deploy the **contents** of `sdcard/`; the device expects `/assets/weapons/weapons_manifest.bin` and asset paths beginning with `assets/`. Do not place a `sdcard` directory on the card.
 
-A few interfaces were inferred from the conversation and may need small edits to match your repo exactly:
-
-- `ITime` exposes `millis() const`
-- `ILights` exposes:
-  - `setPattern(std::shared_ptr<weapon_behavior::LightPatternDef>)`
-  - `flash()`
-- `IDebug` exposes `log(std::string)` and `error(std::string)`
-- `IInput` exposes:
-  - `wasTriggerPressed()`
-  - `wasTriggerReleased()`
-  - `isTriggerHeld()`
-  - `wasReloadPressed()`
-  - `wasNextShortPressed()`
-  - `wasPrevShortPressed()`
-  - `wasQuitPressed()`
-- `PlatformServices` has `std::shared_ptr` fields for `audio`, `debug`, `input`, `lights`, `time`, and `textLoader`
-
-## Included example
-
-- `assets/weapons/weapons_manifest.json`
-- `assets/weapons/chainsaw/behavior.json`
-
+The stored asset reference paths were not renamed, so existing firmware-side loaders and the USB file-transfer protocol continue to use `assets/...` paths.
 
 ## Teensy 4.0 + Audio Shield
 
@@ -273,3 +253,28 @@ The host CMake/CTest suite includes `Stm32I2sClockConfigTest` to guard against
 omitting the divider again. Tests run on host mocks; on-board I2S signals and
 sound output still require hardware verification.
 
+
+## USB access to the SD card (STM32F411)
+
+Use the **Live Hardware** dialog in the Weapon FSM Editor to browse the microSD card over
+USB CDC without removing it. Select the BlackPill COM port and **Connect**. In LOCAL mode,
+use Refresh, Upload, Download, New folder, Rename, Delete, or Sync folder. **Deploy compiled
+assets directory** compares file sizes and CRC32 checksums, sends only changed files, then
+reloads the compiled bank manifest and equipped weapon.
+
+The firmware uses **binary bridge protocol v2** (CRC16 frames, acknowledged operations).
+Uploads use `.upload` staging files with CRC32 verification and guarded replacement;
+downloads are verified by CRC32. A disconnected or aborted transfer leaves the original
+asset intact, and any abandoned staging file is cleaned when that path is next uploaded.
+Temporary replacement `.backup` files are restored or cleared on the next upload of the
+same path. FAT replacement is not power-loss atomic.
+
+**SD access is exclusive during PC file operations.** The STM32 pauses weapon FSM updates,
+releases prepared audio file handles, and stops lighting sequences while the PC owns the
+maintenance session. On release/activation or USB disconnect, the MCU reloads the bank and
+resumes normal operation. The file service never operates from an interrupt or audio DMA
+callback; each serial iteration handles at most one file operation. The BlackPill must
+remain powered during transfers. The PC does not mount the SD card as a Windows drive.
+
+The editor's
+`weapon_fsm_workspace.hardware_bridge` package is the protocol-v2 client.

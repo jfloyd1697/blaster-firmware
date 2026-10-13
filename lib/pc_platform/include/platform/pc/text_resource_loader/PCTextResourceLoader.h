@@ -28,7 +28,7 @@ public:
             return {};
         }
 
-        const std::ifstream in(path, std::ios::in | std::ios::binary);
+        const std::ifstream in(normalizePath(path), std::ios::in | std::ios::binary);
         if (!in) {
             if (m_debug != nullptr) {
                 m_debug->error("PCTextResourceLoader: failed to open: " + path);
@@ -109,13 +109,12 @@ public:
 
 private:
     static std::filesystem::path normalizePath(const std::string& path) {
+        const std::filesystem::path sdRoot = std::filesystem::current_path() / "sdcard";
         if (path.empty() || path == "/") {
-            return std::filesystem::current_path();
+            return sdRoot;
         }
-        if (!path.empty() && path.front() == '/') {
-            return std::filesystem::path(path.substr(1));
-        }
-        return std::filesystem::path(path);
+        const std::filesystem::path requested(path);
+        return sdRoot / requested.relative_path();
     }
 };
 

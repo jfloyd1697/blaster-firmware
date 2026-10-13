@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class IAudioBackend {
 public:
@@ -23,6 +24,12 @@ public:
         (void) durationMs;
         return false;
     }
+
+    virtual bool prepareSounds(const std::vector<std::string>& paths) {
+        (void) paths;
+        return true;
+    }
+    virtual void releasePreparedSounds() {}
 
     virtual void stop() = 0;
 };

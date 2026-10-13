@@ -16,6 +16,10 @@ void Stm32F411Input::begin() const {
     analogReadResolution(12);
 }
 
+void Stm32F411Input::prepareInputSample() {
+    m_cachedLadderSample = readLadderRaw();
+}
+
 bool Stm32F411Input::readRawButton(const ButtonID button) const {
     if (button == ButtonID::Trigger) {
         return digitalRead(m_pins.trigger) == LOW;
@@ -23,7 +27,7 @@ bool Stm32F411Input::readRawButton(const ButtonID button) const {
     if (button == ButtonID::Quit) {
         return false;
     }
-    return m_ladder.isPressed(button, readLadderRaw());
+    return m_ladder.isPressed(button, m_cachedLadderSample);
 }
 
 int Stm32F411Input::readLadderRaw() const {

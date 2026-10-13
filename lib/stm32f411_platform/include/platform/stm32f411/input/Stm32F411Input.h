@@ -16,6 +16,7 @@ public:
     [[nodiscard]] std::optional<int> rawLadderValue() const override;
 
 protected:
+    void prepareInputSample() override;
     [[nodiscard]] bool readRawButton(ButtonID button) const override;
 
 private:
@@ -23,6 +24,7 @@ private:
 
     Stm32F411InputPins m_pins;
     AnalogButtonLadder m_ladder;
+    int m_cachedLadderSample = 4095;
 };
 
 #endif // BLASTER_STM32F411_INPUT_H

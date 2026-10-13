@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class IAudioEngine {
 public:
@@ -18,6 +19,15 @@ public:
         (void) durationMs;
         return false;
     }
+
+    // Prepare the equipped weapon's unique clips. Hardware backends can keep
+    // validated files open so an action never has to open and inspect a WAV.
+    // The default is intentionally a no-op for platforms without such caching.
+    virtual bool prepareSounds(const std::vector<std::string>& paths) {
+        (void) paths;
+        return true;
+    }
+    virtual void releasePreparedSounds() {}
 
     virtual void stop() = 0;
 };

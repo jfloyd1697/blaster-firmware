@@ -58,7 +58,7 @@ Stm32F411AudioBackend::Stm32F411AudioBackend(const Stm32F411I2sPins& pins, IDebu
 }
 
 Stm32F411AudioBackend::~Stm32F411AudioBackend() {
-    stop();
+    releasePreparedSounds();
     if (g_activeAudio == this) {
         g_activeAudio = nullptr;
     }
@@ -89,6 +89,12 @@ bool Stm32F411AudioBackend::begin() {
 }
 
 void Stm32F411AudioBackend::update() {
+    if (m_pendingPlayback) {
+        PendingPlayback pending = std::move(*m_pendingPlayback);
+        m_pendingPlayback.reset();
+        startSoundNow(pending.path, pending.loop);
+        return;
+    }
     if (!m_active) {
         return;
     }
@@ -126,7 +132,67 @@ void Stm32F411AudioBackend::update() {
     }
 }
 
+bool Stm32F411AudioBackend::prepareSounds(const std::vector<std::string>& paths) {
+    // The weapon switch owns the lifetime of this catalog. Each clip is
+    // opened and its WAV header validated once, then stays at its data offset.
+    releasePreparedSounds();
+    bool allValid = true;
+    for (const std::string& rawPath : paths) {
+        const std::string path = normalizePath(rawPath);
+        if (path.empty()) continue;
+        const bool duplicate = std::any_of(m_preparedClips.begin(), m_preparedClips.end(),
+            [&](const std::unique_ptr<PreparedClip>& clip) { return clip->path == path; });
+        if (duplicate) continue;
+
+        auto clip = std::make_unique<PreparedClip>();
+        clip->path = path;
+        clip->file = g_stm32Sd.open(path.c_str(), O_RDONLY);
+        if (!clip->file) {
+            if (m_debug) m_debug->error("Stm32F411AudioBackend: cannot prepare missing WAV " + path);
+            allValid = false;
+            continue;
+        }
+        if (!parseWavHeader(clip->file, clip->format) ||
+            !checkWavFormat(clip->format, path) ||
+            !clip->file.seekSet(clip->format.dataOffset)) {
+            if (m_debug) m_debug->error("Stm32F411AudioBackend: cannot prepare WAV " + path);
+            clip->file.close();
+            allValid = false;
+            continue;
+        }
+        m_preparedClips.push_back(std::move(clip));
+    }
+    if (m_debug) {
+        m_debug->log("Stm32F411AudioBackend: prepared " +
+                     std::to_string(m_preparedClips.size()) + " unique audio clips");
+    }
+    return allValid;
+}
+
+void Stm32F411AudioBackend::releasePreparedSounds() {
+    stop();
+    for (const auto& clip : m_preparedClips) {
+        clip->file.close();
+    }
+    m_preparedClips.clear();
+}
+
 void Stm32F411AudioBackend::playSound(const std::string& file, const bool loop, const bool blocking) {
+    if (!blocking) {
+        stop();
+        m_pendingPlayback = std::make_unique<PendingPlayback>(PendingPlayback{file, loop});
+        return;
+    }
+    startSoundNow(file, loop);
+    if (blocking && !loop) {
+        while (m_active) {
+            update();
+            yield();
+        }
+    }
+}
+
+void Stm32F411AudioBackend::startSoundNow(const std::string& file, const bool loop) {
     stop();
 
     m_currentFile = normalizePath(file);
@@ -154,12 +220,7 @@ void Stm32F411AudioBackend::playSound(const std::string& file, const bool loop, 
         m_debug->log("Stm32F411AudioBackend: playing " + m_currentFile);
     }
 
-    if (blocking && !loop) {
-        while (m_active) {
-            update();
-            yield();
-        }
-    }
+
 }
 
 bool Stm32F411AudioBackend::playTone(const std::uint32_t frequencyHz,
@@ -223,13 +284,13 @@ bool Stm32F411AudioBackend::startBufferedPlayback() {
 }
 
 void Stm32F411AudioBackend::stop() {
+    m_pendingPlayback.reset();
     if (m_active && g_i2s2.Instance != nullptr) {
         HAL_I2S_DMAStop(&g_i2s2);
     }
 
-    if (m_file) {
-        m_file.close();
-    }
+    if (m_file) m_file.close();
+    m_playbackFile = nullptr;
 
     m_currentFile.clear();
     m_loop = false;
@@ -253,6 +314,7 @@ void Stm32F411AudioBackend::onDmaHalfComplete() {
             return;
         }
     }
+    if (m_refillFirstHalf) ++m_refillDeadlineMisses;
     m_refillFirstHalf = true;
 }
 
@@ -264,6 +326,7 @@ void Stm32F411AudioBackend::onDmaComplete() {
             return;
         }
     }
+    if (m_refillSecondHalf) ++m_refillDeadlineMisses;
     m_refillSecondHalf = true;
 }
 
@@ -282,6 +345,13 @@ std::string Stm32F411AudioBackend::normalizePath(const std::string& path) {
 }
 
 bool Stm32F411AudioBackend::openWav(const std::string& path) {
+    for (const auto& clip : m_preparedClips) {
+        if (clip->path != path) continue;
+        m_format = clip->format;
+        m_playbackFile = &clip->file;
+        return m_playbackFile->seekSet(m_format.dataOffset);
+    }
+
     m_file = g_stm32Sd.open(path.c_str(), O_RDONLY);
     if (!m_file) {
         if (m_debug != nullptr) {
@@ -290,7 +360,8 @@ bool Stm32F411AudioBackend::openWav(const std::string& path) {
         return false;
     }
 
-    if (!parseWavHeader(m_format)) {
+    m_playbackFile = &m_file;
+    if (!parseWavHeader(m_file, m_format)) {
         if (m_debug != nullptr) {
             m_debug->error("Stm32F411AudioBackend: unsupported WAV file " + path);
         }
@@ -301,13 +372,7 @@ bool Stm32F411AudioBackend::openWav(const std::string& path) {
     // The SD exporter normalizes authored sounds to 44.1 kHz PCM. The
     // STM32 I2S clock is configured for that rate; do not attempt to
     // retune the peripheral for arbitrary source rates during playback.
-    if (m_format.sampleRate != 44100u) {
-        if (m_debug != nullptr) {
-            m_debug->error(
-                "Stm32F411AudioBackend: expected 44100 Hz PCM WAV, got " +
-                std::to_string(m_format.sampleRate) + " Hz: " + path +
-                ". Re-export the audio using weapon-fsm-export-sd.");
-        }
+    if (!checkWavFormat(m_format, path)) {
         m_file.close();
         return false;
     }
@@ -315,9 +380,20 @@ bool Stm32F411AudioBackend::openWav(const std::string& path) {
     return m_file.seekSet(m_format.dataOffset);
 }
 
-bool Stm32F411AudioBackend::parseWavHeader(WavFormat& format) {
+bool Stm32F411AudioBackend::checkWavFormat(const WavFormat& format,
+                                             const std::string& path) const {
+    if (format.sampleRate == 44100u) return true;
+    if (m_debug) {
+        m_debug->error("Stm32F411AudioBackend: expected 44100 Hz PCM WAV, got " +
+                       std::to_string(format.sampleRate) + " Hz: " + path +
+                       ". Re-export the audio using weapon-fsm-export-sd.");
+    }
+    return false;
+}
+
+bool Stm32F411AudioBackend::parseWavHeader(File32& file, WavFormat& format) {
     std::uint8_t header[12]{};
-    if (!readExact(m_file, header, sizeof(header)) ||
+    if (!readExact(file, header, sizeof(header)) ||
         std::memcmp(header, "RIFF", 4) != 0 ||
         std::memcmp(header + 8, "WAVE", 4) != 0) {
         return false;
@@ -325,21 +401,21 @@ bool Stm32F411AudioBackend::parseWavHeader(WavFormat& format) {
 
     bool haveFormat = false;
     bool haveData = false;
-    while (m_file.available() && (!haveFormat || !haveData)) {
+    while (file.available() && (!haveFormat || !haveData)) {
         std::uint8_t chunkHeader[8]{};
-        if (!readExact(m_file, chunkHeader, sizeof(chunkHeader))) {
+        if (!readExact(file, chunkHeader, sizeof(chunkHeader))) {
             return false;
         }
 
         const std::uint32_t chunkSize = readLe32(chunkHeader + 4);
-        const std::uint32_t chunkDataOffset = static_cast<std::uint32_t>(m_file.curPosition());
+        const std::uint32_t chunkDataOffset = static_cast<std::uint32_t>(file.curPosition());
 
         if (std::memcmp(chunkHeader, "fmt ", 4) == 0) {
             if (chunkSize < 16) {
                 return false;
             }
             std::uint8_t fmt[16]{};
-            if (!readExact(m_file, fmt, sizeof(fmt))) {
+            if (!readExact(file, fmt, sizeof(fmt))) {
                 return false;
             }
             const std::uint16_t encoding = readLe16(fmt);
@@ -357,7 +433,7 @@ bool Stm32F411AudioBackend::parseWavHeader(WavFormat& format) {
         }
 
         const std::uint32_t nextChunk = chunkDataOffset + chunkSize + (chunkSize & 1u);
-        if (!m_file.seekSet(nextChunk)) {
+        if (!file.seekSet(nextChunk)) {
             return false;
         }
     }
@@ -548,7 +624,7 @@ bool Stm32F411AudioBackend::fillHalf(const std::size_t halfIndex) {
 }
 
 std::size_t Stm32F411AudioBackend::readPcmFrames(std::int16_t* destination, const std::size_t frameCount) {
-    if (!m_file || m_sourceExhausted) {
+    if (m_playbackFile == nullptr || !*m_playbackFile || m_sourceExhausted) {
         return 0;
     }
 
@@ -571,7 +647,7 @@ std::size_t Stm32F411AudioBackend::readPcmFrames(std::int16_t* destination, cons
 
         if (m_format.channels == 2) {
             const std::size_t bytes = framesToRead * 2 * sizeof(std::int16_t);
-            const int bytesRead = m_file.read(
+            const int bytesRead = m_playbackFile->read(
                 reinterpret_cast<std::uint8_t*>(destination + framesProduced * 2), bytes);
             if (bytesRead <= 0) {
                 break;
@@ -584,7 +660,7 @@ std::size_t Stm32F411AudioBackend::readPcmFrames(std::int16_t* destination, cons
             }
         } else {
             const std::size_t bytes = framesToRead * sizeof(std::int16_t);
-            const int bytesRead = m_file.read(reinterpret_cast<std::uint8_t*>(m_monoScratch.data()), bytes);
+            const int bytesRead = m_playbackFile->read(reinterpret_cast<std::uint8_t*>(m_monoScratch.data()), bytes);
             if (bytesRead <= 0) {
                 break;
             }
@@ -606,7 +682,7 @@ std::size_t Stm32F411AudioBackend::readPcmFrames(std::int16_t* destination, cons
 }
 
 bool Stm32F411AudioBackend::rewindAudioData() {
-    if (!m_file.seekSet(m_format.dataOffset)) {
+    if (m_playbackFile == nullptr || !m_playbackFile->seekSet(m_format.dataOffset)) {
         return false;
     }
     m_dataBytesRead = 0;
@@ -617,9 +693,8 @@ bool Stm32F411AudioBackend::rewindAudioData() {
 
 void Stm32F411AudioBackend::finishPlayback() {
     HAL_I2S_DMAStop(&g_i2s2);
-    if (m_file) {
-        m_file.close();
-    }
+    if (m_file) m_file.close();
+    m_playbackFile = nullptr;
     m_active = false;
     m_toneActive = false;
     m_toneFramesRemaining = 0;

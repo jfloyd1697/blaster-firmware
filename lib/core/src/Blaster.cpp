@@ -1,6 +1,8 @@
 #include "core/Blaster.h"
 
 #include <memory>
+#include <unordered_set>
+#include <vector>
 #include <utility>
 
 #include "core/audio/IAudioEngine.h"
@@ -83,9 +85,29 @@ void Blaster::selectPreviousBank() {
 }
 
 void Blaster::equipCurrentWeapon() {
+#ifdef PLATFORM_STM32F411
+    // Selection is a control event, never a filesystem operation.
+    // Stop the old behavior immediately and coalesce rapid selections.
+    if (m_services.audio) m_services.audio->stop();
+    if (m_services.lights) m_services.lights->stopSequence();
+    m_behaviorController.reset();
+    m_weaponLoadPending = true;
+#else
+    servicePendingWeaponLoad();
+#endif
+}
+
+void Blaster::servicePendingWeaponLoad() {
+#ifdef PLATFORM_STM32F411
+    if (!m_weaponLoadPending) return;
+    m_weaponLoadPending = false;
+#endif
     // A new weapon must never inherit audio, animation, or pending events
     // from the previously equipped weapon (including failed loads).
-    if (m_services.audio) m_services.audio->stop();
+    if (m_services.audio) {
+        m_services.audio->stop();
+        m_services.audio->releasePreparedSounds();
+    }
     if (m_services.lights) m_services.lights->stopSequence();
     m_behaviorController.reset();
     m_currentBehavior.reset();
@@ -115,6 +137,23 @@ void Blaster::equipCurrentWeapon() {
         return;
     }
 
+    // Prepare every unique audio file for the selected weapon, including
+    // random clip sets and effects. Full PCM is streamed: preloading the WAVs
+    // themselves would exceed the STM32F411 RAM budget.
+    if (m_services.audio) {
+        std::vector<std::string> clipPaths;
+        clipPaths.reserve(m_currentBehavior->clips.size());
+        std::unordered_set<std::string> seen;
+        for (const auto& clip : m_currentBehavior->clips) {
+            if (!clip.second.path.empty() && seen.insert(clip.second.path).second) {
+                clipPaths.push_back(clip.second.path);
+            }
+        }
+        if (!m_services.audio->prepareSounds(clipPaths) && m_services.debug) {
+            m_services.debug->error("Blaster: some audio clips could not be prepared for " + entry->name);
+        }
+    }
+
     ShootContext context;
     context.time = m_services.time.get();
     context.audio = m_services.audio.get();
@@ -129,7 +168,7 @@ void Blaster::equipCurrentWeapon() {
     };
     context.playLight = [this](const std::string& path, const bool loop) {
         if (!m_services.lights || !m_services.textLoader) return;
-        if (!m_services.lights->playSequenceFile(path, *m_services.textLoader, loop) && m_services.debug) {
+        if (!m_services.lights->requestSequenceFile(path, *m_services.textLoader, loop) && m_services.debug) {
             m_services.debug->error("Blaster: invalid compiled light sequence: " + path);
         }
     };

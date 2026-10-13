@@ -136,7 +136,11 @@ void WeaponBehaviorController::processPendingEvents() {
         m_pendingEvents.pop_front();
         const auto* transition = findTransition(event);
         if (transition == nullptr) continue;
-        if (m_context.debug) {
+        // Held-trigger self transitions can occur every loop iteration. Printing
+        // them at USB serial speed starves audio/LED servicing on the MCU.
+        const bool repeatedHold = (event == "trigger_held" || event == "trigger_tick") &&
+            (transition->internal || transition->target == m_currentState);
+        if (m_context.debug && !repeatedHold) {
             m_context.debug->log("Behavior transition: " + m_currentState + " --" + event + "--> " + transition->target);
         }
         applyTransition(*transition);

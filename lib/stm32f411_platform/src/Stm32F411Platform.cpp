@@ -9,7 +9,6 @@
 #include "core/audio/AudioEngine.h"
 #include "core/debug/IDebug.h"
 #include "core/lights/LightEngine.h"
-#include "core/storage/ResourceTreeDumper.h"
 #include "platform/stm32f411/audio/Stm32F411AudioBackend.h"
 #include "platform/stm32f411/input/Stm32F411Input.h"
 #include "platform/stm32f411/lights/Stm32F411LightBackend.h"
@@ -95,10 +94,6 @@ PlatformServices Stm32F411PlatformFactory::create(const Stm32F411BoardConfig& bo
     } else {
         services.debug->error("Stm32F411Platform: storage service failed");
     }
-    if (sdOk) {
-        ResourceTreeDumper::dump(*services.textLoader, *services.debug);
-    }
-
     services.debug->log("Stm32F411Platform: starting input service");
     auto input = std::make_shared<Stm32F411Input>(board.input, services.time.get());
     input->begin();

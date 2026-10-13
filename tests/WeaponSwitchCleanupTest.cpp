@@ -35,6 +35,18 @@ public:
         records.push_back("audio:start:" + path);
     }
     void stop() override { records.push_back("audio:stop"); }
+    bool prepareSounds(const std::vector<std::string>& paths) override {
+        ++prepareCount;
+        preparedPaths = paths;
+        return true;
+    }
+    void releasePreparedSounds() override {
+        ++releaseCount;
+        preparedPaths.clear();
+    }
+    int prepareCount = 0;
+    int releaseCount = 0;
+    std::vector<std::string> preparedPaths;
     std::vector<std::string>& records;
 };
 
@@ -91,7 +103,13 @@ int main() {
         {"Darth Maul", "assets/weapons/Characters/darth_maul_hurt/weapon.bin"},
         {"Missing", "assets/weapons/Default/does_not_exist/weapon.bin"},
     };
+    auto audio = std::static_pointer_cast<TestAudio>(services.audio);
     TestBlaster blaster(services, {bank});
+    assert(audio->prepareCount == 1);
+    assert(audio->releaseCount == 1);
+    assert(!audio->preparedPaths.empty());
+    assert(std::all_of(audio->preparedPaths.begin(), audio->preparedPaths.end(),
+        [](const std::string& path) { return path.size() > 4 && path.substr(path.size() - 4) == ".wav"; }));
     assert(std::any_of(log.begin(), log.end(), [](const std::string& value) {
         return value.rfind("audio:start:", 0) == 0;
     }));
@@ -130,12 +148,19 @@ int main() {
     }
 
     log.clear();
+    const int beforeInvalidPrepare = audio->prepareCount;
+    const int beforeInvalidRelease = audio->releaseCount;
     blaster.selectNextWeapon();
     // An invalid weapon must also silence the previous one.
+    assert(audio->releaseCount == beforeInvalidRelease + 1);
+    assert(audio->prepareCount == beforeInvalidPrepare);
+    assert(audio->preparedPaths.empty());
     assert(log.size() == 2);
     assert(log[0] == "audio:stop");
     assert(log[1] == "light:stop");
     blaster.selectNextWeapon();
     assert(log.size() >= 4);
+    assert(audio->prepareCount == beforeInvalidPrepare + 1);
+    assert(!audio->preparedPaths.empty());
     return 0;
 }

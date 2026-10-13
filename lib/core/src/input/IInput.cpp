@@ -19,6 +19,7 @@ const IInput::ButtonConfig& IInput::configFor(const ButtonID button) {
 }
 
 void IInput::update() {
+    prepareInputSample();
     const std::uint32_t now = nowMs();
 
     for (const auto button : allButtons_) {
@@ -29,7 +30,7 @@ void IInput::update() {
 void IInput::updateButton(const ButtonID button, const std::uint32_t now) {
     auto& state = stateFor(button);
     const auto& config = configFor(button);
-    const bool rawPressed = readRawButton(button);
+    const bool rawPressed = remoteInputEnabled_ ? remoteButtons_[toIndex(button)] : readRawButton(button);
 
     state.pressedEvent = false;
     state.releasedEvent = false;
@@ -114,4 +115,20 @@ bool IInput::wasQuitPressed() const {
 
 std::uint32_t IInput::nowMs() const {
     return static_cast<uint32_t>(m_time->millis());
+}
+
+void IInput::setRemoteInputEnabled(const bool enabled) {
+    if (remoteInputEnabled_ == enabled) return;
+    remoteInputEnabled_ = enabled;
+    clearRemoteButtons();
+    // Reinitialize debounce history when switching input sources.
+    for (auto& state : buttonStates_) state = ButtonState{};
+}
+
+void IInput::setRemoteButton(const ButtonID button, const bool pressed) {
+    if (remoteInputEnabled_) remoteButtons_[toIndex(button)] = pressed;
+}
+
+void IInput::clearRemoteButtons() {
+    remoteButtons_.fill(false);
 }

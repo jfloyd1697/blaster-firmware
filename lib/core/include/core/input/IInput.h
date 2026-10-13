@@ -26,6 +26,13 @@ public:
 
     void update();
 
+    // Remote source is sampled by the same debounce/edge detector as hardware.
+    void setRemoteInputEnabled(bool enabled);
+    void setRemoteButton(ButtonID button, bool pressed);
+    void clearRemoteButtons();
+    [[nodiscard]] bool remoteInputEnabled() const { return remoteInputEnabled_; }
+
+
     [[nodiscard]] bool isTriggerHeld() const;
 
     [[nodiscard]] bool wasTriggerPressed() const;
@@ -49,6 +56,10 @@ public:
     }
 
 protected:
+    // Platforms with multiplexed inputs can capture one coherent sample for
+    // all logical buttons at the beginning of each update cycle.
+    virtual void prepareInputSample() {}
+
     [[nodiscard]] virtual bool readRawButton(ButtonID button) const = 0;
 
     [[nodiscard]] std::uint32_t nowMs() const;
@@ -112,6 +123,8 @@ private:
 
     std::array<ButtonState, kButtonCount> buttonStates_{};
 
+    bool remoteInputEnabled_ = false;
+    std::array<bool, kButtonCount> remoteButtons_{};
     ITime *m_time = nullptr;
 };
 

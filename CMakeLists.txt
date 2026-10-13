@@ -122,6 +122,17 @@ if(BUILD_TESTING AND BLASTER_PLATFORM STREQUAL "PC")
     target_link_libraries(Stm32ToneBackendTest PRIVATE core)
     add_test(NAME stm32_tone_backend COMMAND Stm32ToneBackendTest)
 
+    add_executable(Stm32PreparedAudioTest
+        tests/Stm32PreparedAudioTest.cpp
+        lib/stm32f411_platform/src/audio/Stm32F411AudioBackend.cpp
+    )
+    target_include_directories(Stm32PreparedAudioTest BEFORE PRIVATE
+        tests/stubs
+        lib/stm32f411_platform/include
+    )
+    target_link_libraries(Stm32PreparedAudioTest PRIVATE core)
+    add_test(NAME stm32_prepared_audio COMMAND Stm32PreparedAudioTest)
+
     add_executable(Stm32I2sClockConfigTest
         tests/Stm32I2sClockConfigTest.cpp
         lib/stm32f411_platform/src/audio/Stm32F411AudioBackend.cpp
@@ -182,6 +193,21 @@ if(BUILD_TESTING AND BLASTER_PLATFORM STREQUAL "PC")
     add_executable(ToneGeneratorTest tests/ToneGeneratorTest.cpp)
     target_link_libraries(ToneGeneratorTest PRIVATE core)
     add_test(NAME tone_generator COMMAND ToneGeneratorTest)
+
+    add_executable(Stm32InputSamplingTest
+        tests/Stm32InputSamplingTest.cpp
+        lib/stm32f411_platform/src/input/Stm32F411Input.cpp
+    )
+    target_include_directories(Stm32InputSamplingTest BEFORE PRIVATE
+        tests/input_stubs
+        lib/stm32f411_platform/include
+    )
+    target_link_libraries(Stm32InputSamplingTest PRIVATE core)
+    add_test(NAME stm32_input_sampling COMMAND Stm32InputSamplingTest)
+
+    add_executable(LightStreamPerformanceTest tests/LightStreamPerformanceTest.cpp)
+    target_link_libraries(LightStreamPerformanceTest PRIVATE core)
+    add_test(NAME light_stream_performance COMMAND LightStreamPerformanceTest)
 
     add_executable(LightEngineTest tests/LightEngineTest.cpp)
     target_link_libraries(LightEngineTest PRIVATE core)

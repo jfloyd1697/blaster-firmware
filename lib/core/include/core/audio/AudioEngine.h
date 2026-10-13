@@ -23,6 +23,8 @@ public:
 
     bool playTone(std::uint32_t frequencyHz, std::uint32_t durationMs) override;
 
+    bool prepareSounds(const std::vector<std::string>& paths) override;
+    void releasePreparedSounds() override;
     void stop() override;
 
 private:

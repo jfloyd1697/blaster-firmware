@@ -27,8 +27,13 @@ public:
     void flash() override;
     void playSequence(const LightSequence& sequence, bool loop) override;
     bool playSequenceFile(const std::string& path, ITextResourceLoader& loader, bool loop) override;
+    bool requestSequenceFile(const std::string& path, ITextResourceLoader& loader, bool loop) override;
     void stopSequence() override;
     void update() override;
+
+    // Perform at most one SD frame read, outside the time-critical render path.
+    void prefetchNextFrame();
+    [[nodiscard]] std::uint32_t missedPrefetchCount() const { return m_missedPrefetches; }
 
 private:
     struct ActivePattern {
@@ -42,16 +47,28 @@ private:
         bool loop = false;
     };
 
+    struct PendingSequence {
+        std::string path;
+        ITextResourceLoader* loader = nullptr;
+        bool loop = false;
+    };
+
     struct StreamingSequence {
         ITextResourceLoader* loader = nullptr;
         std::string path;
         LightSequenceHeader header;
         LightFrame frame;
+        LightFrame firstFrame;
+        std::size_t firstNextOffset = 0;
+        LightFrame prefetchedFrame;
+        std::size_t prefetchedOffset = 0;
+        bool prefetched = false;
         std::uint32_t startMs = 0;
         std::uint32_t frameEndMs = 0;
         std::uint32_t frameIndex = 0;
         std::size_t nextOffset = LightSequenceParser::FirstFrameOffset;
         bool loop = false;
+        bool frameNeedsRender = true;
     };
 
     struct PatternState {
@@ -79,7 +96,9 @@ private:
     std::optional<ActivePattern> m_overridePattern;
     std::optional<ActiveSequence> m_sequence;
     std::optional<StreamingSequence> m_stream;
+    std::optional<PendingSequence> m_pendingSequence;
     std::vector<LightColor> m_lastPixels;
+    std::uint32_t m_missedPrefetches = 0;
 };
 
 #endif // BLASTER_FIRMWARE_LIGHTENGINE_H

@@ -29,6 +29,14 @@ bool AudioEngine::playTone(const std::uint32_t frequencyHz, const std::uint32_t 
     return m_backend != nullptr && m_backend->playTone(frequencyHz, durationMs);
 }
 
+bool AudioEngine::prepareSounds(const std::vector<std::string>& paths) {
+    return m_backend != nullptr && m_backend->prepareSounds(paths);
+}
+
+void AudioEngine::releasePreparedSounds() {
+    if (m_backend != nullptr) m_backend->releasePreparedSounds();
+}
+
 void AudioEngine::stop() {
     if (m_backend != nullptr) {
         m_backend->stop();

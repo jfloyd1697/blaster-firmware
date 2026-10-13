@@ -86,9 +86,18 @@ If the normal firmware cannot load or parse `assets/weapons/weapons_manifest.bin
 
 ## Asset layout validation
 
-The normal firmware validates the SD asset layout before loading weapon banks. Exported weapons use the compact `weapon.bin` runtime format. Boot validation reads only the binary asset table for each weapon, verifies every referenced audio/light file exists, and avoids constructing the complete FSM for every weapon. The complete FSM is decoded only when that weapon is equipped. Host-side full validation still decodes and validates the entire runtime.
+The normal firmware now boots by loading only the compact `weapons_manifest.bin` bank index. It does **not** scan every weapon, sound, or lighting file at startup. The selected `weapon.bin` is decoded and validated when equipped. If the manifest cannot be loaded, the existing fallback mode is still used.
 
-The same validation is available from the platform diagnostics menu as `7 - asset layout test`.
+Run manual validation from the platform diagnostics menu using `7 - asset layout test`; the host-side `AssetLayoutTest` also remains available. The recursive SD storage tree dump is likewise available only on demand as diagnostic option 4, not automatically at startup.
+
+### Runtime performance improvements
+
+- STM32 button ladder performs one ADC conversion per input-update cycle (shared by all three ladder buttons); `AnalogButtonLadderConfig` is still the only threshold configuration.
+- Light-sequence playback rasterizes a frame only when advancing to a new frame or after an override effect, instead of rebuilding an identical LED buffer on every main-loop iteration.
+- Typical 61-LED compiled frames are fetched in one bounded SD range read rather than two separate file opens. STM32 SD reads use block transfers instead of byte-by-byte reads.
+- Repeated held-trigger self-transitions no longer flood USB serial logs. FSM event processing and shot timing are unchanged.
+
+These changes reduce unnecessary runtime work; device-level latency and audio-under-load still require measurement on the STM32 board.
 
 The repository asset tree can be checked on the host with CTest:
 
@@ -263,3 +272,5 @@ Restore the application/diagnostics by flashing
 The host CMake/CTest suite includes `Stm32I2sClockConfigTest` to guard against
 omitting the divider again. Tests run on host mocks; on-board I2S signals and
 sound output still require hardware verification.
+
+Stage 4 foreground scheduling notes: see `STAGE4_NOTES.md`.

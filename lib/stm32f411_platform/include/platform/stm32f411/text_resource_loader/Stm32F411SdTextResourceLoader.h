@@ -30,8 +30,11 @@ public:
 
         std::string content;
         content.reserve(static_cast<std::size_t>(file.fileSize()));
+        std::uint8_t buffer[512];
         while (file.available()) {
-            content.push_back(static_cast<char>(file.read()));
+            const int bytesRead = file.read(buffer, sizeof(buffer));
+            if (bytesRead <= 0) break;
+            content.append(reinterpret_cast<const char*>(buffer), static_cast<std::size_t>(bytesRead));
         }
         file.close();
         return content;
@@ -44,12 +47,11 @@ public:
             return {};
         }
         const auto available = static_cast<std::size_t>(file.fileSize()) - offset;
-        std::string result;
-        result.reserve(count < available ? count : available);
-        for (std::size_t i = 0; i < count && file.available(); ++i) {
-            const int value = file.read();
-            if (value < 0) break;
-            result.push_back(static_cast<char>(value));
+        const std::size_t toRead = count < available ? count : available;
+        std::string result(toRead, '\0');
+        if (toRead != 0) {
+            const int bytesRead = file.read(reinterpret_cast<std::uint8_t*>(&result[0]), toRead);
+            result.resize(bytesRead > 0 ? static_cast<std::size_t>(bytesRead) : 0);
         }
         file.close();
         return result;

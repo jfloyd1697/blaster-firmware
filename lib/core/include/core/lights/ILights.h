@@ -31,6 +31,12 @@ struct LightSequence {
     std::vector<LightFrame> frames;
 };
 
+struct LightSequencePlayback {
+    bool loop = false;
+    std::size_t firstFrame = 0;
+    bool holdFrame = false;
+};
+
 class ILights {
 public:
     virtual ~ILights() = default;
@@ -40,18 +46,15 @@ public:
     virtual void flash() = 0;
     virtual void playSequence(const LightSequence& sequence, bool loop) = 0;
     virtual bool playSequenceFile(
-        const std::string& path, ITextResourceLoader& loader, bool loop) {
+        const std::string& path, ITextResourceLoader& loader, LightSequencePlayback playback) {
         (void)path;
         (void)loader;
-        (void)loop;
+        (void)playback;
         return false;
     }
-    // Queue a sequence for storage servicing. Implementations without deferred
-    // loading retain the synchronous behavior.
+    // Queue SD access for foreground storage servicing, not the control tick.
     virtual bool requestSequenceFile(
-        const std::string& path, ITextResourceLoader& loader, bool loop) {
-        return playSequenceFile(path, loader, loop);
-    }
+        const std::string& path, ITextResourceLoader& loader, LightSequencePlayback playback) = 0;
     virtual void stopSequence() = 0;
     virtual void update() = 0;
 };

@@ -178,9 +178,9 @@ void Blaster::servicePendingWeaponLoad() {
     context.stopAudio = [this]() {
         if (m_services.audio) m_services.audio->stop();
     };
-    context.playLight = [this](const std::string& path, const bool loop) {
+    context.playLight = [this](const std::string& path, const LightSequencePlayback playback) {
         if (!m_services.lights || !m_services.textLoader) return;
-        if (!m_services.lights->requestSequenceFile(path, *m_services.textLoader, loop) && m_services.debug) {
+        if (!m_services.lights->requestSequenceFile(path, *m_services.textLoader, playback) && m_services.debug) {
             m_services.debug->error("Blaster: invalid compiled light sequence: " + path);
         }
     };

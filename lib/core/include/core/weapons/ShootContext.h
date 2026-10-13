@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "core/lights/ILights.h"
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -18,7 +20,7 @@ struct ShootContext {
 
     std::function<void(const std::string&, bool, const std::string&)> playAudio;
     std::function<void()> stopAudio;
-    std::function<void(const std::string&, bool)> playLight;
+    std::function<void(const std::string&, LightSequencePlayback)> playLight;
     std::function<void()> stopLight;
     std::function<void(const std::string&)> log;
 };

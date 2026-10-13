@@ -88,6 +88,21 @@ bool LightSequenceParser::readFrame(
     return true;
 }
 
+bool LightSequenceParser::skipFrame(
+    ITextResourceLoader& loader, const std::string& path, const std::size_t offset,
+    const std::uint16_t ledCount, std::size_t& nextOffset) {
+    const auto header = loader.readRange(path, offset, 6);
+    if (header.size() != 6) return false;
+    const auto durationMs = u32(header, 0);
+    const auto pixelCount = u16(header, 4);
+    if (durationMs == 0 || pixelCount > ledCount ||
+        offset > std::numeric_limits<std::size_t>::max() - 6 - static_cast<std::size_t>(pixelCount) * 6) {
+        return false;
+    }
+    nextOffset = offset + 6 + static_cast<std::size_t>(pixelCount) * 6;
+    return true;
+}
+
 bool LightSequenceParser::validateBinary(ITextResourceLoader& loader, const std::string& path) {
     LightSequenceHeader header;
     if (!readHeader(loader, path, header)) return false;

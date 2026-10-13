@@ -569,7 +569,7 @@ bool startShowcaseStage() {
     LightSequenceHeader header;
     if (!LightSequenceParser::readHeader(*services.textLoader, stage.path, header) ||
         header.ledCount != kShowcaseLedCount ||
-        !services.lights->playSequenceFile(stage.path, *services.textLoader, true)) {
+        !services.lights->playSequenceFile(stage.path, *services.textLoader, LightSequencePlayback{true})) {
         Serial.print("FAIL: could not stream light effect: ");
         Serial.println(stage.path);
         return false;

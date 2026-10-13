@@ -96,7 +96,7 @@ int main() {
     auto* hardware = backend.get();
     LightEngine lights(std::move(backend), &clock);
     assert(lights.begin());
-    assert(lights.playSequenceFile("ring.bin", loader, true));
+    assert(lights.playSequenceFile("ring.bin", loader, LightSequencePlayback{true}));
     assert(loader.rangeReads == 2); // binary header + first frame
 
     lights.update();

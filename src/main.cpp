@@ -179,7 +179,7 @@ namespace {
             bridgeReply("OK AUDIO");
         } else if (line.startsWith("LIGHT ") && bridgeMode == BridgeMode::DirectControl) {
             const bool ok = services.lights && services.textLoader &&
-                services.lights->playSequenceFile(std::string(line.substring(6).c_str()), *services.textLoader, false);
+                services.lights->playSequenceFile(std::string(line.substring(6).c_str()), *services.textLoader, LightSequencePlayback{});
             bridgeReply(ok ? "OK LIGHT" : "ERR LIGHT");
         } else {
             bridgeReply("ERR COMMAND_OR_MODE");

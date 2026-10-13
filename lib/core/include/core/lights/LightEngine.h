@@ -26,8 +26,8 @@ public:
     void flashPattern(const weapon_behavior::LightPatternDef& pattern) override;
     void flash() override;
     void playSequence(const LightSequence& sequence, bool loop) override;
-    bool playSequenceFile(const std::string& path, ITextResourceLoader& loader, bool loop) override;
-    bool requestSequenceFile(const std::string& path, ITextResourceLoader& loader, bool loop) override;
+    bool playSequenceFile(const std::string& path, ITextResourceLoader& loader, LightSequencePlayback playback) override;
+    bool requestSequenceFile(const std::string& path, ITextResourceLoader& loader, LightSequencePlayback playback) override;
     void stopSequence() override;
     void update() override;
 
@@ -50,7 +50,10 @@ private:
     struct PendingSequence {
         std::string path;
         ITextResourceLoader* loader = nullptr;
-        bool loop = false;
+        LightSequencePlayback playback;
+        std::optional<LightSequenceHeader> header;
+        std::size_t nextOffset = LightSequenceParser::FirstFrameOffset;
+        std::size_t nextFrameIndex = 0;
     };
 
     struct StreamingSequence {
@@ -66,8 +69,10 @@ private:
         std::uint32_t startMs = 0;
         std::uint32_t frameEndMs = 0;
         std::uint32_t frameIndex = 0;
+        std::uint32_t firstFrameIndex = 0;
         std::size_t nextOffset = LightSequenceParser::FirstFrameOffset;
         bool loop = false;
+        bool holdFrame = false;
         bool frameNeedsRender = true;
     };
 

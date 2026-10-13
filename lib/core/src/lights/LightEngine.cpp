@@ -60,29 +60,17 @@ void LightEngine::playSequence(const LightSequence& sequence, const bool loop) {
 }
 
 bool LightEngine::playSequenceFile(
-    const std::string& path, ITextResourceLoader& loader, const bool loop)
-{
-    StreamingSequence stream;
-    stream.loader = &loader;
-    stream.path = path;
-    stream.loop = loop;
-    if (!LightSequenceParser::readHeader(loader, path, stream.header)) return false;
-    if (!LightSequenceParser::readFrame(
-            loader, path, LightSequenceParser::FirstFrameOffset,
-            stream.header.ledCount, stream.frame, stream.nextOffset)) return false;
-    stream.firstFrame = stream.frame;
-    stream.firstNextOffset = stream.nextOffset;
-    stream.frameEndMs = stream.frame.durationMs;
-    stream.startMs = nowMs();
-    m_sequence.reset();
-    m_stream = std::move(stream);
-    return true;
+    const std::string& path, ITextResourceLoader& loader, const LightSequencePlayback playback) {
+    requestSequenceFile(path, loader, playback);
+    // Explicit synchronous calls (diagnostics/tests) run the pending foreground steps.
+    // Normal weapon transitions use requestSequenceFile, never this synchronous path.
+    while (m_pendingSequence) prefetchNextFrame();
+    return m_stream.has_value();
 }
 
 bool LightEngine::requestSequenceFile(
-    const std::string& path, ITextResourceLoader& loader, const bool loop) {
-    // Called from an FSM transition: no SD card access here.
-    m_pendingSequence = PendingSequence{path, &loader, loop};
+    const std::string& path, ITextResourceLoader& loader, const LightSequencePlayback playback) {
+    m_pendingSequence = PendingSequence{path, &loader, playback};
     m_stream.reset();
     m_sequence.reset();
     return true;
@@ -90,22 +78,65 @@ bool LightEngine::requestSequenceFile(
 
 void LightEngine::prefetchNextFrame() {
     if (m_pendingSequence) {
-        PendingSequence pending = std::move(*m_pendingSequence);
+        auto& pending = *m_pendingSequence;
+        if (!pending.header) {
+            LightSequenceHeader header;
+            if (!LightSequenceParser::readHeader(*pending.loader, pending.path, header) ||
+                pending.playback.firstFrame >= header.frameCount) {
+                m_pendingSequence.reset();
+                return;
+            }
+            pending.header = header;
+            return;
+        }
+
+        // Skip at most one frame per foreground service call, reading only its
+        // six-byte metadata; only decode the requested frame's pixels.
+        if (pending.nextFrameIndex < pending.playback.firstFrame) {
+            std::size_t nextOffset = 0;
+            if (!LightSequenceParser::skipFrame(*pending.loader, pending.path, pending.nextOffset,
+                                               pending.header->ledCount, nextOffset)) {
+                m_pendingSequence.reset();
+                return;
+            }
+            pending.nextOffset = nextOffset;
+            ++pending.nextFrameIndex;
+            return;
+        }
+        std::size_t nextOffset = 0;
+        LightFrame frame;
+        if (!LightSequenceParser::readFrame(*pending.loader, pending.path, pending.nextOffset,
+                                            pending.header->ledCount, frame, nextOffset)) {
+            m_pendingSequence.reset();
+            return;
+        }
+
+        StreamingSequence stream;
+        stream.loader = pending.loader;
+        stream.path = pending.path;
+        stream.header = *pending.header;
+        stream.frame = std::move(frame);
+        stream.firstFrame = stream.frame;
+        stream.nextOffset = nextOffset;
+        stream.firstNextOffset = nextOffset;
+        stream.frameEndMs = stream.frame.durationMs;
+        stream.frameIndex = pending.playback.firstFrame;
+        stream.firstFrameIndex = pending.playback.firstFrame;
+        stream.loop = pending.playback.loop;
+        stream.holdFrame = pending.playback.holdFrame;
+        stream.startMs = nowMs();
+        m_stream = std::move(stream);
         m_pendingSequence.reset();
-        playSequenceFile(pending.path, *pending.loader, pending.loop);
         return;
     }
     if (!m_stream) return;
     auto& stream = *m_stream;
-    if (stream.prefetched || stream.frameIndex + 1 >= stream.header.frameCount) return;
-    // One bounded read per call. The foreground update never performs SD I/O.
+    if (stream.holdFrame || stream.prefetched || stream.frameIndex + 1 >= stream.header.frameCount) return;
+    // One bounded SD read, separated from the rendering/control path.
     std::size_t offset = 0;
     LightFrame next;
     if (!LightSequenceParser::readFrame(*stream.loader, stream.path, stream.nextOffset,
-                                        stream.header.ledCount, next, offset)) {
-        // Leave the current frame displayed; a later attempt may succeed.
-        return;
-    }
+                                        stream.header.ledCount, next, offset)) return;
     stream.prefetchedFrame = std::move(next);
     stream.prefetchedOffset = offset;
     stream.prefetched = true;
@@ -139,38 +170,37 @@ void LightEngine::update() {
     if (m_stream.has_value()) {
         auto& stream = *m_stream;
         const std::uint32_t elapsed = now - stream.startMs;
-        if (!stream.loop && elapsed >= stream.header.totalDurationMs) {
-            m_stream.reset();
-        } else {
-            const std::uint32_t local = stream.loop ? elapsed % stream.header.totalDurationMs : elapsed;
-            if (local < stream.frameEndMs - stream.frame.durationMs) {
-                stream.frame = stream.firstFrame;
-                stream.nextOffset = stream.firstNextOffset;
-                stream.frameIndex = 0;
-                stream.frameEndMs = stream.frame.durationMs;
-                stream.prefetched = false;
-                stream.frameNeedsRender = true;
-            }
-            if (local >= stream.frameEndMs &&
-                stream.frameIndex + 1 < stream.header.frameCount) {
-                if (!stream.prefetched) {
-                    ++m_missedPrefetches;
-                } else {
-                    ++stream.frameIndex;
-                    stream.nextOffset = stream.prefetchedOffset;
-                    stream.frameEndMs += stream.prefetchedFrame.durationMs;
-                    stream.frame = std::move(stream.prefetchedFrame);
+        if (!stream.holdFrame && elapsed >= stream.frameEndMs) {
+            if (stream.frameIndex + 1 == stream.header.frameCount) {
+                if (stream.loop) {
+                    // Loop the selected segment, not frames preceding firstFrame.
+                    stream.frame = stream.firstFrame;
+                    stream.nextOffset = stream.firstNextOffset;
+                    stream.frameIndex = stream.firstFrameIndex;
+                    stream.frameEndMs = stream.frame.durationMs;
+                    stream.startMs = now;
                     stream.prefetched = false;
                     stream.frameNeedsRender = true;
+                } else {
+                    m_stream.reset();
                 }
+            } else if (stream.prefetched) {
+                ++stream.frameIndex;
+                stream.nextOffset = stream.prefetchedOffset;
+                stream.frameEndMs += stream.prefetchedFrame.durationMs;
+                stream.frame = std::move(stream.prefetchedFrame);
+                stream.prefetched = false;
+                stream.frameNeedsRender = true;
+            } else {
+                ++m_missedPrefetches;
             }
-            if (m_stream) {
-                if (stream.frameNeedsRender) {
-                    renderSequenceFrame(stream.frame);
-                    stream.frameNeedsRender = false;
-                }
-                return;
+        }
+        if (m_stream) {
+            if (stream.frameNeedsRender) {
+                renderSequenceFrame(stream.frame);
+                stream.frameNeedsRender = false;
             }
+            return;
         }
     }
 

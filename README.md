@@ -273,4 +273,3 @@ The host CMake/CTest suite includes `Stm32I2sClockConfigTest` to guard against
 omitting the divider again. Tests run on host mocks; on-board I2S signals and
 sound output still require hardware verification.
 
-Stage 4 foreground scheduling notes: see `STAGE4_NOTES.md`.

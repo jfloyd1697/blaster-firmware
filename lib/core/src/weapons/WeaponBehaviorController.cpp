@@ -225,8 +225,20 @@ void WeaponBehaviorController::executeAction(const weapon_behavior::ActionDef& a
     }
     if (action.type == "play_light" || action.type == "start_light_sequence") {
         if (action.sequence && m_context.playLight) {
-            const bool loop = action.type == "start_light_sequence" || action.mode.value_or("once") == "loop";
-            m_context.playLight(resolveLightPath(*action.sequence), loop);
+            LightSequencePlayback playback;
+            playback.loop = action.type == "start_light_sequence" || action.mode.value_or("once") == "loop";
+            playback.holdFrame = action.mode.value_or("once") == "frame";
+            // For a light action, value specifies a zero-based compiled frame index;
+            // value_from_var can instead select that index from a runtime FSM variable.
+            const RuntimeValue* selected = action.value ? &*action.value : nullptr;
+            if (action.valueFromVar) selected = findVariable(*action.valueFromVar);
+            if ((action.value || action.valueFromVar) && selected == nullptr) return;
+            if (selected) {
+                const auto* index = std::get_if<std::int64_t>(selected);
+                if (!index || *index < 0) return;
+                playback.firstFrame = static_cast<std::size_t>(*index);
+            }
+            m_context.playLight(resolveLightPath(*action.sequence), playback);
         }
         return;
     }

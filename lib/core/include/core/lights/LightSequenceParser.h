@@ -29,6 +29,10 @@ public:
         std::uint16_t ledCount,
         LightFrame& result,
         std::size_t& nextOffset);
+    // Advance past a compiled frame using only its six-byte metadata.
+    static bool skipFrame(
+        ITextResourceLoader& loader, const std::string& path, std::size_t offset,
+        std::uint16_t ledCount, std::size_t& nextOffset);
     static bool validateBinary(ITextResourceLoader& loader, const std::string& path);
     static bool readLayoutHeader(
         ITextResourceLoader& loader, const std::string& path, std::uint16_t& ledCount);

@@ -83,7 +83,7 @@ int main() {
     auto* rawBackend = backend.get();
     LightEngine engine(std::move(backend), &time);
     assert(engine.begin());
-    assert(engine.playSequenceFile("assets/lights/flash.bin", loader, true));
+    assert(engine.playSequenceFile("assets/lights/flash.bin", loader, LightSequencePlayback{true}));
     engine.update();
     assert((rawBackend->pixels[1] == LightColor{0, 255, 0}));
     time.time = 99;
@@ -106,7 +106,7 @@ int main() {
     std::size_t largeSize = std::filesystem::file_size(kFixtureRoot + "assets/lights/large.bin");
     assert(largeSize > 180000);
     loader.maxRequested = 0;
-    assert(engine.playSequenceFile("assets/lights/large.bin", loader, true));
+    assert(engine.playSequenceFile("assets/lights/large.bin", loader, LightSequencePlayback{true}));
     time.time = 450 + 33 * 499;
     engine.update();
     assert(loader.maxRequested < 1024);
@@ -115,6 +115,6 @@ int main() {
     assert(loader.maxRequested < 1024);
 
     engine.stopSequence();
-    assert(!engine.playSequenceFile("assets/audio/fire.wav", loader, false));
+    assert(!engine.playSequenceFile("assets/audio/fire.wav", loader, LightSequencePlayback{}));
     return 0;
 }

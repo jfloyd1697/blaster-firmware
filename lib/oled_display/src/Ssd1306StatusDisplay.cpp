@@ -147,20 +147,6 @@ void Ssd1306StatusDisplay::drawLine(const std::size_t page, const std::string& t
     }
 }
 
-void Ssd1306StatusDisplay::drawProgress(const std::size_t completed, const std::size_t total) {
-    if (total == 0) return;
-    constexpr std::size_t kBarStart = 73;
-    constexpr std::size_t kBarEnd = kWidth - 2;
-    constexpr std::uint8_t kBorderPixels = 0x7F;
-    const std::size_t filled = (kBarEnd - kBarStart) * std::min(completed, total) / total;
-    for (std::size_t x = kBarStart; x <= kBarEnd; ++x) {
-        const std::uint8_t pixels =
-            x == kBarStart || x == kBarEnd ? kBorderPixels :
-            x < kBarStart + filled ? 0x7F : 0x41;
-        m_frame[(kPages - 1) * kWidth + x] = pixels;
-    }
-}
-
 void Ssd1306StatusDisplay::render() {
     m_frame.fill(0);
     drawLine(0, "B" + counter(m_status.bankIndex + 1, m_status.bankCount) + " " + m_status.bankName);
@@ -174,12 +160,8 @@ void Ssd1306StatusDisplay::render() {
     if (m_mode == DisplayControlMode::RemoteInput) state = "PC INPUT";
     if (m_mode == DisplayControlMode::DirectControl) state = "PC DIRECT";
     drawLine(2, "W" + counter(m_status.weaponIndex + 1, m_status.weaponCount) + " " + state);
-    if (m_status.progress.has_value()) {
-        drawLine(3, "STUDS " + counter(m_status.progress->completed, m_status.progress->total));
-        drawProgress(m_status.progress->completed, m_status.progress->total);
-    } else {
-        drawLine(3, "FSM " + m_status.behaviorState);
-    }
+    drawLine(3, "FSM " + m_status.behaviorState);
+
 }
 
 void Ssd1306StatusDisplay::service(const std::uint32_t nowMs) {

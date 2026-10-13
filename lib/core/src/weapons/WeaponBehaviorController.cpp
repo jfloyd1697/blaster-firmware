@@ -95,6 +95,11 @@ const std::string& WeaponBehaviorController::currentState() const {
     return m_currentState;
 }
 
+const std::string& WeaponBehaviorController::currentStateLabel() const {
+    const auto* state = findState(m_currentState);
+    return state != nullptr && !state->label.empty() ? state->label : m_currentState;
+}
+
 const std::unordered_map<std::string, RuntimeValue>& WeaponBehaviorController::variables() const {
     return m_variables;
 }

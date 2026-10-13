@@ -21,6 +21,7 @@ public:
     void handleEvent(const std::string& event);
 
     [[nodiscard]] const std::string& currentState() const;
+    [[nodiscard]] const std::string& currentStateLabel() const;
     [[nodiscard]] const std::unordered_map<std::string, weapon_behavior::RuntimeValue>& variables() const;
 
 private:

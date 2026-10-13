@@ -5,7 +5,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <string>
 
 // A snapshot of presentation data. The weapon runtime never performs I2C transfers.
@@ -21,11 +20,6 @@ enum class DisplayControlMode : std::uint8_t {
     DirectControl,
 };
 
-struct DisplayProgress {
-    std::size_t completed = 0;
-    std::size_t total = 0;
-};
-
 struct DisplayStatus {
     std::string bankName;
     std::string weaponName;
@@ -35,7 +29,6 @@ struct DisplayStatus {
     std::size_t weaponIndex = 0;
     std::size_t weaponCount = 0;
     DisplayWeaponState weaponState = DisplayWeaponState::Loading;
-    std::optional<DisplayProgress> progress;
 };
 
 class IStatusDisplay {

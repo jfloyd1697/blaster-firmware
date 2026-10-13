@@ -33,7 +33,6 @@ private:
     bool sendCommand(const std::uint8_t* values, std::size_t count);
     void render();
     void drawLine(std::size_t page, const std::string& text);
-    void drawProgress(std::size_t completed, std::size_t total);
     [[nodiscard]] std::string weaponLine() const;
 
     TwoWire& m_bus;

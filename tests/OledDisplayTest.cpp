@@ -38,7 +38,7 @@ int main() {
     assert(firstPixels.size() == 128 * 4);
     assert(firstPixels[0] != 0); // A bank label was rendered.
 
-    status.progress = DisplayProgress{10, 20};
+    status.behaviorState = "STUDS 10/20";
     display.present(status);
     display.setControlMode(DisplayControlMode::RemoteInput);
     const std::size_t secondPacket = wire.transmissions.size();

@@ -24,7 +24,7 @@ Four 8-pixel-high rows show:
 1. Current bank number/name (e.g. `B2/6 BLASTER`).
 2. Current weapon's name, scrolling at a moderate rate when longer than 21 characters.
 3. Weapon position and load state (`LOADING`, `READY`, `ERROR`); in PC-remote modes this row identifies `PC INPUT` or `PC DIRECT`.
-4. Weapon FSM state; for True Jedi, stud progress with a small progress bar.
+4. Compiled weapon FSM state label, including progress expressed by a weapon profile.
 
 The display does not claim to show battery charge without a battery-monitor interface: the existing BMS indicator LEDs remain separate.
 

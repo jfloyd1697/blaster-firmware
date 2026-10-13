@@ -31,7 +31,7 @@ bool Blaster::update() {
     handleTriggerInput();
     if (m_behaviorController) {
         m_behaviorController->update();
-        if (m_services.display && m_lastPublishedBehaviorState != m_behaviorController->currentState()) {
+        if (m_services.display && m_lastPublishedBehaviorState != m_behaviorController->currentStateLabel()) {
             publishDisplay();
         }
     }
@@ -47,7 +47,8 @@ void Blaster::handleWeaponSelectionInput() {
 }
 
 void Blaster::handleReloadInput() {
-    if (m_services.input && m_behaviorController && m_services.input->wasReloadPressed()) reloadCurrentWeapon();
+    if (!m_services.input || !m_services.input->wasReloadPressed()) return;
+    if (m_behaviorController) reloadCurrentWeapon();
 }
 
 void Blaster::handleTriggerInput() {
@@ -212,7 +213,7 @@ void Blaster::publishDisplay() {
     status.weaponState = m_weaponLoadPending ? DisplayWeaponState::Loading :
         m_behaviorController ? DisplayWeaponState::Ready : DisplayWeaponState::Error;
     if (m_behaviorController) {
-        status.behaviorState = m_behaviorController->currentState();
+        status.behaviorState = m_behaviorController->currentStateLabel();
     }
     m_lastPublishedBehaviorState = status.behaviorState;
     m_services.display->present(status);

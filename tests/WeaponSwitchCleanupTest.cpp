@@ -11,6 +11,7 @@
 #include "core/debug/IDebug.h"
 #include "core/display/IStatusDisplay.h"
 #include "core/lights/ILights.h"
+#include "core/lights/LightSequenceParser.h"
 #include "core/input/IInput.h"
 #include "core/text_resource_loader/ITextResourceLoader.h"
 #include "core/time/ITime.h"
@@ -74,8 +75,6 @@ public:
         return true;
     }
     void stopSequence() override { records.push_back("light:stop"); }
-    void setProgress(std::size_t filled, std::size_t total) override { progress.emplace_back(filled, total); }
-    std::vector<std::pair<std::size_t, std::size_t>> progress;
     void update() override {}
     std::vector<std::string>& records;
 };
@@ -95,6 +94,14 @@ public:
     bool resourceExists(const std::string& path) const override {
         std::ifstream file(path, std::ios::binary);
         return file.good();
+    }
+    std::string readRange(const std::string& path, std::size_t offset, std::size_t count) override {
+        std::ifstream file(path, std::ios::binary);
+        if (!file || !file.seekg(static_cast<std::streamoff>(offset))) return {};
+        std::string buffer(count, '\0');
+        file.read(buffer.data(), static_cast<std::streamsize>(count));
+        buffer.resize(static_cast<std::size_t>(file.gcount()));
+        return buffer;
     }
 };
 
@@ -190,5 +197,57 @@ int main() {
     assert(log.size() >= 4);
     assert(audio->prepareCount == beforeInvalidPrepare + 1);
     assert(!audio->preparedPaths.empty());
+
+    // The 20-stud interaction comes exclusively from the compiled weapon FSM and light sequences.
+    auto clock = std::make_shared<TestTime>();
+    auto input = std::make_shared<TestInput>(clock.get());
+    input->setRemoteInputEnabled(true);
+    services.time = clock;
+    services.input = input;
+    WeaponBank jediBank;
+    jediBank.name = "Characters";
+    jediBank.weapons = {{"True Jedi", "assets/weapons/Characters/true_jedi/weapon.bin"}};
+    TestBlaster jedi(services, {jediBank});
+    assert(display->last.behaviorState == "STUDS 00/20");
+    input->update(); // Establish released debounced baseline before the first press.
+    FileLoader loader;
+    const std::string sequenceRoot = "assets/weapons/Characters/true_jedi/lights/";
+    for (int index = 0; index <= 20; ++index) {
+        const auto suffix = index < 10 ? "0" + std::to_string(index) : std::to_string(index);
+        const auto sequence = sequenceRoot + "studs_" + suffix + ".bin";
+        assert(LightSequenceParser::validateBinary(loader, sequence));
+        assert(LightSequenceParser::validateLayout(loader, sequenceRoot + "studs_" + suffix + ".layout.bin"));
+        LightSequenceHeader header;
+        assert(LightSequenceParser::readHeader(loader, sequence, header));
+        assert(header.ledCount == 61);
+        assert(header.frameCount == (index == 20 ? 6u : 1u));
+    }
+    auto tick = [&](ButtonID button, bool pressed) {
+        input->setRemoteButton(button, pressed);
+        clock->now += 21;
+        input->update();
+        jedi.update();
+        clock->now += 21;
+        input->update();
+        jedi.update();
+    };
+    for (int shot = 1; shot <= 21; ++shot) {
+        tick(ButtonID::Trigger, true);
+        if (shot == 1) {
+            assert(display->last.behaviorState == "STUDS 01/20");
+            clock->now += 30;
+            input->update();
+            jedi.update();
+            assert(display->last.behaviorState == "STUDS 01/20");
+        }
+        tick(ButtonID::Trigger, false);
+    }
+    assert(display->last.behaviorState == "STUDS 20/20");
+    assert(std::any_of(log.begin(), log.end(), [](const std::string& item) {
+        return item.rfind("light:start:assets/weapons/Characters/true_jedi/lights/studs_20.bin", 0) == 0;
+    }));
+    tick(ButtonID::Reload, true);
+    tick(ButtonID::Reload, false);
+    assert(display->last.behaviorState == "STUDS 00/20");
     return 0;
 }

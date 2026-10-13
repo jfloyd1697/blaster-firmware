@@ -1,0 +1,4 @@
+add_library(oled_display src/Ssd1306StatusDisplay.cpp)
+target_include_directories(oled_display PUBLIC include)
+target_link_libraries(oled_display PUBLIC core)
+target_compile_features(oled_display PUBLIC cxx_std_17)

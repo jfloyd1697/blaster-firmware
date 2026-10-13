@@ -32,12 +32,19 @@ struct Stm32F411LightPins {
     std::uint16_t ledCount;
 };
 
+struct Stm32F411OledPins {
+    std::uint32_t scl;
+    std::uint32_t sda;
+    std::uint8_t address;
+};
+
 struct Stm32F411BoardConfig {
     const char* name;
     Stm32F411SpiPins sd;
     Stm32F411I2sPins audio;
     Stm32F411InputPins input;
     Stm32F411LightPins lights;
+    std::optional<Stm32F411OledPins> oled;
     std::optional<std::uint32_t> statusLed;
     bool statusLedActiveLow;
 };

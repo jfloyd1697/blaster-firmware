@@ -37,3 +37,7 @@ Do not power a substantial LED strip from the Teensy 3.3 V rail.
 - Next / previous / reload resistor ladder: A0
 
 The Audio Shield optional volume potentiometer uses A1/pin 15, so the input ladder is intentionally left on A0.
+
+## Optional 0.91-inch OLED
+
+A 128x32 SSD1306 I2C OLED shares the Audio Shield bus: **SDA 18**, **SCL 19**, plus **3.3 V and GND**. The default I2C address is `0x3C`. See [OLED wiring and runtime](oled_display.md).

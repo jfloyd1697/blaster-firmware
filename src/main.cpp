@@ -5,11 +5,13 @@
 #include "core/Blaster.h"
 #include "core/FallbackMode.h"
 #include "core/Platform.h"
+#include "core/display/IStatusDisplay.h"
 #include "core/audio/IAudioEngine.h"
 #include "core/assets/AssetLayoutValidator.h"
 #include "core/debug/IDebug.h"
 #include "core/input/IInput.h"
 #include "core/lights/ILights.h"
+#include "core/time/ITime.h"
 #include "core/weapons/WeaponLoader.h"
 
 #ifdef PLATFORM_PC
@@ -52,6 +54,7 @@ namespace {
     std::uint32_t weaponLoads = 0;
     constexpr std::uint32_t kControlPeriodUs = 1000;
     constexpr std::uint32_t kBackgroundMinimumSlackUs = 400;
+    constexpr std::uint32_t kDisplayMinimumSlackUs = 500;
 
     void bridgePoll();
 
@@ -100,6 +103,11 @@ namespace {
             ++backgroundReadCount;
         }
         if (controlSchedule.slack(micros(), kControlPeriodUs) >= kBackgroundMinimumSlackUs) bridgePoll();
+        // Lowest-priority, bounded I2C transfer. At most 8 display-data bytes
+        // per pass; do not update the OLED in the control tick or an ISR.
+        if (services.display && controlSchedule.slack(micros(), kControlPeriodUs) >= kDisplayMinimumSlackUs) {
+            services.display->service(millis());
+        }
     }
 
     void bridgeReply(const String& message) {
@@ -112,6 +120,13 @@ namespace {
         if (services.lights) services.lights->stopSequence();
         if (services.input) services.input->setRemoteInputEnabled(next == BridgeMode::RemoteInput);
         bridgeMode = next;
+        if (services.display) {
+            const DisplayControlMode mode = next == BridgeMode::RemoteInput
+                ? DisplayControlMode::RemoteInput
+                : next == BridgeMode::DirectControl ? DisplayControlMode::DirectControl
+                    : DisplayControlMode::Normal;
+            services.display->setControlMode(mode);
+        }
         lastBridgeHeartbeat = millis();
         bridgeReply("OK MODE");
     }
@@ -239,11 +254,12 @@ namespace {
             services.lights->update();
         }
 
-        if (blaster) {
-            return blaster->update();
-        }
-        if (fallbackMode) {
-            return fallbackMode->update();
+        if (blaster || fallbackMode) {
+            const bool running = blaster ? blaster->update() : fallbackMode->update();
+            if (services.display && services.time) {
+                services.display->service(static_cast<std::uint32_t>(services.time->millis()));
+            }
+            return running;
         }
 
         if (services.debug) {

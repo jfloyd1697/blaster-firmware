@@ -57,6 +57,10 @@ Use a 3.3 V to 5 V logic-level buffer if the LED strip is not reliable with a 3.
 
 The STM32 ADC is 12-bit, so the button-ladder thresholds are scaled for the 0-4095 ADC range.
 
+## Optional 0.91-inch OLED
+
+A 128x32 SSD1306 I2C display can show the active bank and weapon, FSM state and True Jedi stud progress. Connect **PB8 to SCL**, **PB9 to SDA**, plus **3.3 V and GND**. The default address is `0x3C`; it is configurable in the STM32 board config. Details are in [OLED wiring and runtime](oled_display.md).
+
 ## DevEBox onboard W25Q32
 
 The DevEBox has onboard W25Q32 flash, but it is intentionally not part of the blaster storage backend yet. The supplied board image does not document that flash chip's MCU pin mapping, and the existing audio asset set is larger than the device anyway. External microSD is therefore the canonical STM32 asset store.

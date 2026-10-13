@@ -1,12 +1,14 @@
 #include "core/Blaster.h"
 
 #include <memory>
+#include <string>
 #include <unordered_set>
 #include <vector>
 #include <utility>
 
 #include "core/audio/IAudioEngine.h"
 #include "core/debug/IDebug.h"
+#include "core/display/IStatusDisplay.h"
 #include "core/input/IInput.h"
 #include "core/lights/ILights.h"
 #include "core/text_resource_loader/ITextResourceLoader.h"
@@ -27,7 +29,12 @@ bool Blaster::update() {
     handleWeaponSelectionInput();
     handleReloadInput();
     handleTriggerInput();
-    if (m_behaviorController) m_behaviorController->update();
+    if (m_behaviorController) {
+        m_behaviorController->update();
+        if (m_services.display && m_lastPublishedBehaviorState != m_behaviorController->currentState()) {
+            publishDisplay();
+        }
+    }
     return !shouldQuit();
 }
 
@@ -92,6 +99,7 @@ void Blaster::equipCurrentWeapon() {
     if (m_services.lights) m_services.lights->stopSequence();
     m_behaviorController.reset();
     m_weaponLoadPending = true;
+    publishDisplay();
 #else
     servicePendingWeaponLoad();
 #endif
@@ -113,17 +121,19 @@ void Blaster::servicePendingWeaponLoad() {
     m_currentBehavior.reset();
 
     const WeaponEntry* entry = currentWeapon();
-    if (entry == nullptr || !m_services.textLoader) return;
+    if (entry == nullptr || !m_services.textLoader) { publishDisplay(); return; }
 
     const std::string text = m_services.textLoader->loadText(entry->behaviorPath);
     if (text.empty()) {
         if (m_services.debug) m_services.debug->error("Blaster: failed to load " + entry->behaviorPath);
+        publishDisplay();
         return;
     }
 
     if (entry->behaviorPath.size() < 4 || entry->behaviorPath.substr(entry->behaviorPath.size() - 4) != ".bin" ||
         !weapon_behavior::WeaponBehaviorParser::isBinaryFormat(text)) {
         if (m_services.debug) m_services.debug->error("Blaster: expected WFSMBIN1: " + entry->behaviorPath);
+        publishDisplay();
         return;
     }
     m_currentBehavior = weapon_behavior::WeaponBehaviorParser::parse(text, m_services.debug.get());
@@ -134,6 +144,7 @@ void Blaster::servicePendingWeaponLoad() {
             for (const auto& issue : validation.errors) m_services.debug->error(issue);
         }
         m_currentBehavior.reset();
+        publishDisplay();
         return;
     }
 
@@ -183,6 +194,28 @@ void Blaster::servicePendingWeaponLoad() {
     m_behaviorController->initialize();
     m_behaviorController->handleEvent("on_equip");
     if (m_services.debug) m_services.debug->log("Equipped weapon: " + entry->name);
+    publishDisplay();
+}
+
+void Blaster::publishDisplay() {
+    if (!m_services.display) return;
+    DisplayStatus status;
+    status.bankCount = m_banks.size();
+    status.bankIndex = m_currentBankIndex;
+    if (m_currentBankIndex < m_banks.size()) {
+        const auto& bank = m_banks[m_currentBankIndex];
+        status.bankName = bank.name;
+        status.weaponIndex = m_currentWeaponIndex;
+        status.weaponCount = bank.weapons.size();
+    }
+    if (const auto* weapon = currentWeapon()) status.weaponName = weapon->name;
+    status.weaponState = m_weaponLoadPending ? DisplayWeaponState::Loading :
+        m_behaviorController ? DisplayWeaponState::Ready : DisplayWeaponState::Error;
+    if (m_behaviorController) {
+        status.behaviorState = m_behaviorController->currentState();
+    }
+    m_lastPublishedBehaviorState = status.behaviorState;
+    m_services.display->present(status);
 }
 
 const WeaponEntry* Blaster::currentWeapon() const {

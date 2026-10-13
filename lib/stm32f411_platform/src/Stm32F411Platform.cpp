@@ -2,12 +2,14 @@
 
 #include <Arduino.h>
 #include <SPI.h>
+#include <Wire.h>
 
 #include <memory>
 #include <string>
 
 #include "core/audio/AudioEngine.h"
 #include "core/debug/IDebug.h"
+#include "display/Ssd1306StatusDisplay.h"
 #include "core/lights/LightEngine.h"
 #include "platform/stm32f411/audio/Stm32F411AudioBackend.h"
 #include "platform/stm32f411/input/Stm32F411Input.h"
@@ -120,6 +122,23 @@ PlatformServices Stm32F411PlatformFactory::create(const Stm32F411BoardConfig& bo
         services.debug->log("Stm32F411Platform: lights service ready");
     }
     services.lights = lights;
+
+#if !defined(BLASTER_OLED_ENABLED) || BLASTER_OLED_ENABLED
+    if (board.oled.has_value()) {
+        services.debug->log("Stm32F411Platform: starting OLED service");
+        Wire.setSCL(board.oled->scl);
+        Wire.setSDA(board.oled->sda);
+        Wire.begin();
+        Wire.setClock(400000);
+        auto oled = std::make_shared<Ssd1306StatusDisplay>(Wire, board.oled->address);
+        if (oled->begin()) {
+            services.display = oled;
+            services.debug->log("Stm32F411Platform: SSD1306 OLED ready");
+        } else {
+            services.debug->log("Stm32F411Platform: optional OLED not detected");
+        }
+    }
+#endif
 
     services.debug->log("Stm32F411Platform: service startup complete");
     return services;

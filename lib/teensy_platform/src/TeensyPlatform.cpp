@@ -3,12 +3,18 @@
 #include <Arduino.h>
 #include <SD.h>
 #include <SPI.h>
+#include <Wire.h>
 
 #include <memory>
 #include <string>
 
 #include "core/audio/AudioEngine.h"
 #include "core/debug/IDebug.h"
+#include "display/Ssd1306StatusDisplay.h"
+
+#ifndef BLASTER_OLED_ADDRESS
+#define BLASTER_OLED_ADDRESS 0x3C
+#endif
 #include "core/lights/LightEngine.h"
 #include "core/storage/ResourceTreeDumper.h"
 #include "platform/teensy/audio/TeensyAudioBackend.h"
@@ -96,6 +102,18 @@ PlatformServices TeensyPlatformFactory::create() {
     if (sdOk) {
         ResourceTreeDumper::dump(*services.textLoader, *services.debug);
     }
+#if !defined(BLASTER_OLED_ENABLED) || BLASTER_OLED_ENABLED
+    // Uses the Audio Shield's existing I2C bus: SDA 18, SCL 19.
+    Wire.begin();
+    Wire.setClock(400000);
+    auto oled = std::make_shared<Ssd1306StatusDisplay>(Wire, BLASTER_OLED_ADDRESS);
+    if (oled->begin()) {
+        services.display = oled;
+        services.debug->log("TeensyPlatform: SSD1306 OLED ready");
+    } else {
+        services.debug->log("TeensyPlatform: optional OLED not detected");
+    }
+#endif
     services.debug->log("TeensyPlatform: service startup complete");
     return services;
 }

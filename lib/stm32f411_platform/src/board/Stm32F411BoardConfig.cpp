@@ -20,6 +20,7 @@ constexpr Stm32F411InputPins kInputPins{
 };
 
 constexpr std::uint32_t kWs2812Pin = PB6;
+constexpr Stm32F411OledPins kOledPins{.scl = PB8, .sda = PB9, .address = 0x3C};
 }
 
 Stm32F411BoardConfig Stm32F411Boards::blackPillV20(const std::uint16_t ledCount) {
@@ -29,6 +30,7 @@ Stm32F411BoardConfig Stm32F411Boards::blackPillV20(const std::uint16_t ledCount)
         .audio = kMax98357Pins,
         .input = kInputPins,
         .lights = Stm32F411LightPins{.data = kWs2812Pin, .ledCount = ledCount},
+        .oled = kOledPins,
         .statusLed = PC13,
         .statusLedActiveLow = true,
     };
@@ -41,6 +43,7 @@ Stm32F411BoardConfig Stm32F411Boards::devEBox(const std::uint16_t ledCount) {
         .audio = kMax98357Pins,
         .input = kInputPins,
         .lights = Stm32F411LightPins{.data = kWs2812Pin, .ledCount = ledCount},
+        .oled = kOledPins,
         .statusLed = std::nullopt,
         .statusLedActiveLow = true,
     };

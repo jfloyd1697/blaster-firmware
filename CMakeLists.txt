@@ -12,6 +12,10 @@ add_subdirectory(lib/core)
 add_subdirectory(lib/pc_platform)
 add_subdirectory(lib/esp8266_platform)
 
+if(BLASTER_PLATFORM STREQUAL "TEENSY" OR BLASTER_PLATFORM STREQUAL "STM32F411")
+    add_subdirectory(lib/oled_display)
+endif()
+
 if(BLASTER_PLATFORM STREQUAL "TEENSY")
     add_subdirectory(lib/teensy_platform)
 elseif(BLASTER_PLATFORM STREQUAL "STM32F411")
@@ -212,4 +216,14 @@ if(BUILD_TESTING AND BLASTER_PLATFORM STREQUAL "PC")
     add_executable(LightEngineTest tests/LightEngineTest.cpp)
     target_link_libraries(LightEngineTest PRIVATE core)
     add_test(NAME light_engine COMMAND LightEngineTest)
+    add_executable(OledDisplayTest
+        tests/OledDisplayTest.cpp
+        lib/oled_display/src/Ssd1306StatusDisplay.cpp
+    )
+    target_include_directories(OledDisplayTest BEFORE PRIVATE
+        tests/oled_stubs
+        lib/oled_display/include
+        lib/core/include
+    )
+    add_test(NAME oled_display COMMAND OledDisplayTest)
 endif()

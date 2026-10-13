@@ -11,6 +11,7 @@ class IInput;
 class ILights;
 class ITime;
 class ITextResourceLoader;
+class IStatusDisplay;
 
 struct PlatformServices {
     std::shared_ptr<IAudioEngine> audio;
@@ -18,6 +19,7 @@ struct PlatformServices {
     std::shared_ptr<IInput> input;
     std::shared_ptr<ILights> lights;
     std::shared_ptr<ITime> time;
+    std::shared_ptr<IStatusDisplay> display;
     std::shared_ptr<ITextResourceLoader> textLoader;
 };
 

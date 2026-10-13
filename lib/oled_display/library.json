@@ -1,0 +1,8 @@
+{
+  "name": "oled_display",
+  "version": "1.0.0",
+  "description": "Bounded I2C SSD1306 128x32 status display for the blaster",
+  "build": {"includeDir": "include", "srcDir": "src"},
+  "frameworks": ["arduino"],
+  "platforms": ["ststm32", "teensy"]
+}
